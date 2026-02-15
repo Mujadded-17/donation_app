@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
+import "../styles/Login.css";
 
 const API = import.meta.env.VITE_API_BASE_URL || "http://localhost/donation_backend";
 
@@ -26,7 +27,7 @@ export default function Register() {
     setError("");
 
     try {
-      const res = await axios.post(`${API}/auth_register.php`, form, {
+      const res = await axios.post(${API}/auth_register.php, form, {
         headers: { "Content-Type": "application/json" },
       });
 
@@ -43,43 +44,105 @@ export default function Register() {
   };
 
   return (
-    <div style={{ maxWidth: 420 }}>
-      <h1>Register</h1>
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-header">
+          <h1>Create Account</h1>
+          <p className="auth-subtitle">Join our community</p>
+        </div>
 
-      {msg && <p style={{ color: "green" }}>{msg}</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+        {msg && <div className="message success-message">{msg}</div>}
+        {error && <div className="message error-message">{error}</div>}
 
-      <form onSubmit={submit} style={{ display: "grid", gap: 10 }}>
-        <input name="name" placeholder="Full name" value={form.name} onChange={onChange} required />
-        <input name="email" placeholder="Email" value={form.email} onChange={onChange} required />
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={onChange}
-          required
-        />
-        <input name="phone" placeholder="Phone (optional)" value={form.phone} onChange={onChange} />
-        <input
-          name="address"
-          placeholder="Address (optional)"
-          value={form.address}
-          onChange={onChange}
-        />
+        <form onSubmit={submit} className="auth-form">
+          <div className="form-group">
+            <label htmlFor="name">Full Name</label>
+            <input
+              id="name"
+              type="text"
+              name="name"
+              placeholder="John Doe"
+              value={form.name}
+              onChange={onChange}
+              required
+            />
+          </div>
 
-        <select name="user_type" value={form.user_type} onChange={onChange}>
-          <option value="receiver">Receiver</option>
-          <option value="donor">Donor</option>
-          <option value="admin">Admin</option>
-        </select>
+          <div className="form-group">
+            <label htmlFor="email">Email Address</label>
+            <input
+              id="email"
+              type="email"
+              name="email"
+              placeholder="you@example.com"
+              value={form.email}
+              onChange={onChange}
+              required
+            />
+          </div>
 
-        <button type="submit">Create account</button>
-      </form>
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              name="password"
+              placeholder="Create a strong password"
+              value={form.password}
+              onChange={onChange}
+              required
+            />
+          </div>
 
-      <p style={{ marginTop: 12 }}>
-        Already have an account? <Link to="/login">Login</Link>
-      </p>
+          <div className="form-group">
+            <label htmlFor="phone">Phone (Optional)</label>
+            <input
+              id="phone"
+              type="tel"
+              name="phone"
+              placeholder="Your phone number"
+              value={form.phone}
+              onChange={onChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="address">Address (Optional)</label>
+            <input
+              id="address"
+              type="text"
+              name="address"
+              placeholder="Your address"
+              value={form.address}
+              onChange={onChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="user_type">Account Type</label>
+            <select
+              id="user_type"
+              name="user_type"
+              value={form.user_type}
+              onChange={onChange}
+            >
+              <option value="receiver">Receiver</option>
+              <option value="donor">Donor</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <button type="submit" className="btn-primary">
+            Create Account
+          </button>
+        </form>
+
+        <div className="auth-footer">
+          <p>
+            Already have an account? <Link to="/login">Sign in</Link>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
