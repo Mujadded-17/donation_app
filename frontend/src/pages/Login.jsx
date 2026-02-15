@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
+import "../styles/Login.css";
 
 const API = import.meta.env.VITE_API_BASE_URL || "http://localhost/donation_backend";
 
@@ -19,7 +20,7 @@ export default function Login() {
 
     try {
       const res = await axios.post(
-        `${API}/auth_login.php`,
+        ${API}/auth_login.php,
         { email, password },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -38,27 +39,52 @@ export default function Login() {
   };
 
   return (
-    <div style={{ maxWidth: 420 }}>
-      <h1>Login</h1>
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-header">
+          <h1>Welcome Back</h1>
+          <p className="auth-subtitle">Sign in to your account</p>
+        </div>
 
-      {msg && <p style={{ color: "green" }}>{msg}</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+        {msg && <div className="message success-message">{msg}</div>}
+        {error && <div className="message error-message">{error}</div>}
 
-      <form onSubmit={submit} style={{ display: "grid", gap: 10 }}>
-        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required />
-        <input
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          type="password"
-          placeholder="Password"
-          required
-        />
-        <button type="submit">Login</button>
-      </form>
+        <form onSubmit={submit} className="auth-form">
+          <div className="form-group">
+            <label htmlFor="email">Email Address</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+            />
+          </div>
 
-      <p style={{ marginTop: 12 }}>
-        No account? <Link to="/register">Register</Link>
-      </p>
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              required
+            />
+          </div>
+
+          <button type="submit" className="btn-primary">
+            Sign In
+          </button>
+        </form>
+
+        <div className="auth-footer">
+          <p>
+            Don't have an account? <Link to="/register">Create one</Link>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
