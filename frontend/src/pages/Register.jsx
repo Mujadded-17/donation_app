@@ -27,7 +27,7 @@ export default function Register() {
     setError("");
 
     try {
-      const res = await axios.post(${API}/auth_register.php, form, {
+      const res = await axios.post(`${API}/auth_register.php`, form, {
         headers: { "Content-Type": "application/json" },
       });
 
