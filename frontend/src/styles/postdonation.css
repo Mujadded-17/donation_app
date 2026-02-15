@@ -1,0 +1,376 @@
+
+:root {
+  --wc-bg: #ffffff;
+  --wc-text: #111111;
+  --wc-muted: #6b7280;
+  --wc-orange: #ff6a00;
+  --wc-orange-dark: #ff4d00;
+  --wc-orange-soft: #fff0e6;
+  --wc-shadow: 0 20px 45px rgba(17, 17, 17, 0.08);
+}
+
+/* Container */
+.wc-post-container {
+  min-height: 100vh;
+  background: radial-gradient(1200px 600px at 50% 0%, #fff2ea 0%, rgba(255, 242, 234, 0) 60%),
+    #fff;
+  padding: 60px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* Card */
+.wc-post-card {
+  width: 100%;
+  max-width: 680px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 48px 40px;
+  box-shadow: var(--wc-shadow);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header */
+.wc-post-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.wc-post-header h1 {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--wc-text);
+  margin: 0 0 8px;
+  letter-spacing: -0.5px;
+}
+
+.wc-post-subtitle {
+  font-size: 15px;
+  color: var(--wc-muted);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Messages */
+.wc-message {
+  padding: 14px 18px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wc-success-message {
+  background-color: rgba(46, 213, 115, 0.1);
+  color: #16a34a;
+  border: 1px solid rgba(46, 213, 115, 0.3);
+}
+
+.wc-error-message {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Form */
+.wc-post-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.wc-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wc-form-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--wc-text);
+}
+
+.wc-required {
+  color: var(--wc-orange);
+}
+
+/* Image Upload */
+.wc-image-upload-container {
+  width: 100%;
+}
+
+.wc-image-upload-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  height: 240px;
+  border: 2px dashed rgba(255, 106, 0, 0.3);
+  border-radius: 16px;
+  background: var(--wc-orange-soft);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.wc-image-upload-box:hover {
+  border-color: var(--wc-orange);
+  background: #ffe8d4;
+}
+
+.wc-upload-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--wc-orange);
+}
+
+.wc-upload-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.wc-upload-main {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--wc-orange-dark);
+}
+
+.wc-upload-sub {
+  font-size: 13px;
+  color: var(--wc-muted);
+}
+
+/* Image Preview */
+.wc-image-preview {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #f9f9f9;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.wc-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wc-remove-image {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.wc-remove-image:hover {
+  background: rgba(220, 38, 38, 0.9);
+  transform: scale(1.1);
+}
+
+/* Input & Textarea */
+.wc-form-input,
+.wc-form-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  font-size: 15px;
+  color: var(--wc-text);
+  font-family: inherit;
+  transition: all 0.2s ease;
+  background: #fff;
+}
+
+.wc-form-input:focus,
+.wc-form-textarea:focus {
+  outline: none;
+  border-color: var(--wc-orange);
+  box-shadow: 0 0 0 3px rgba(255, 106, 0, 0.1);
+}
+
+.wc-form-textarea {
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.6;
+}
+
+/* Checkbox */
+.wc-checkbox-group {
+  padding: 12px 16px;
+  background: var(--wc-orange-soft);
+  border-radius: 12px;
+}
+
+.wc-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--wc-text);
+}
+
+.wc-checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--wc-orange);
+}
+
+/* Info Box */
+.wc-info-box {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+}
+
+.wc-info-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.wc-info-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #0369a1;
+}
+
+/* Buttons */
+.wc-form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.wc-btn-post-primary,
+.wc-btn-post-secondary {
+  flex: 1;
+  padding: 14px 24px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  white-space: nowrap;
+}
+
+.wc-btn-post-primary {
+  background: var(--wc-orange);
+  color: #fff;
+  box-shadow: 0 14px 30px rgba(255, 106, 0, 0.22);
+}
+
+.wc-btn-post-primary:hover:not(:disabled) {
+  background: var(--wc-orange-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 35px rgba(255, 106, 0, 0.3);
+}
+
+.wc-btn-post-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.wc-btn-post-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.wc-btn-post-secondary {
+  background: #fff;
+  color: var(--wc-text);
+  border: 2px solid rgba(0, 0, 0, 0.08);
+}
+
+.wc-btn-post-secondary:hover:not(:disabled) {
+  background: #f9f9f9;
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .wc-post-container {
+    padding: 40px 16px;
+  }
+
+  .wc-post-card {
+    padding: 32px 24px;
+  }
+
+  .wc-post-header h1 {
+    font-size: 26px;
+  }
+
+  .wc-form-actions {
+    flex-direction: column;
+  }
+
+  .wc-btn-post-primary,
+  .wc-btn-post-secondary {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .wc-post-card {
+    padding: 24px 20px;
+  }
+
+  .wc-post-header h1 {
+    font-size: 24px;
+  }
+
+  .wc-image-upload-box {
+    height: 200px;
+  }
+
+  .wc-image-preview {
+    height: 220px;
+  }
+}

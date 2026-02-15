@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "../styles/home.css";
 
 export default function Home() {
+  const navigate = useNavigate();
   const sliderRef = useRef(null);
 
   const slides = useMemo(
@@ -91,7 +93,10 @@ export default function Home() {
             </p>
 
             <div className="wc-hero-ctas">
-              <button className="wc-btn wc-btn-solid wc-btn-lg">
+              <button 
+                className="wc-btn wc-btn-solid wc-btn-lg"
+                onClick={() => navigate("/post-donation")}
+              >
                 Post a Donation
               </button>
               <button className="wc-btn wc-btn-outline wc-btn-lg">

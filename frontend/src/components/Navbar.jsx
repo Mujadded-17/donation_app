@@ -1,3 +1,10 @@
+
+Navbar.jsx
+
+
+
+
+
 import React, { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/navbar.css";
@@ -33,6 +40,11 @@ export default function Navbar() {
           <a href="#explore">Explore</a>
           <a href="#how">How it Works</a>
           <a href="#stories">Stories</a>
+          {user && (
+            <Link to="/my-donations" style={{ color: 'var(--wc-orange)' }}>
+              My Donations
+            </Link>
+          )}
         </nav>
 
         {/* Right */}
@@ -74,7 +86,11 @@ export default function Navbar() {
                 Logout
               </button>
 
-              <button type="button" className="wc-btn wc-btn-solid">
+              <button 
+                type="button" 
+                className="wc-btn wc-btn-solid"
+                onClick={() => navigate("/post-donation")}
+              >
                 Post a Donation
               </button>
             </>

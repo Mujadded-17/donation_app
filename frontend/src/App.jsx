@@ -5,6 +5,8 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Items from "./pages/Items";
+import PostDonation from "./pages/PostDonation";
+import MyDonations from "./pages/MyDonations";
 
 export default function App() {
   return (
@@ -15,6 +17,8 @@ export default function App() {
         <Route path="/items" element={<Items />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/post-donation" element={<PostDonation />} />
+        <Route path="/my-donations" element={<MyDonations />} />
       </Routes>
     </BrowserRouter>
   );
