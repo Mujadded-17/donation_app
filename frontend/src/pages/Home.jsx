@@ -1,9 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "../styles/home.css";
-import Navbar from "../components/Navbar";
 
-
-export default function WarmConnectLanding() {
+export default function Home() {
   const sliderRef = useRef(null);
 
   const slides = useMemo(
@@ -75,9 +73,7 @@ export default function WarmConnectLanding() {
 
   return (
     <div className="wc">
-      <Navbar />
-
-      {/* Hero */}
+      {/* HERO */}
       <section className="wc-hero">
         <div className="wc-container wc-hero-grid">
           <div className="wc-hero-left">
@@ -127,7 +123,7 @@ export default function WarmConnectLanding() {
         </div>
       </section>
 
-      {/* Trusted by row */}
+      {/* TRUSTED */}
       <section className="wc-trusted">
         <div className="wc-container">
           <div className="wc-trusted-label">TRUSTED BY LOCAL ORGANIZATIONS</div>
@@ -140,7 +136,7 @@ export default function WarmConnectLanding() {
         </div>
       </section>
 
-      {/* Sharing is Simple */}
+      {/* SHARING SIMPLE */}
       <section className="wc-section" id="how">
         <div className="wc-container">
           <h2 className="wc-h2">Sharing is Simple</h2>
@@ -171,9 +167,9 @@ export default function WarmConnectLanding() {
         </div>
       </section>
 
-      {/* Browse local giving */}
+      {/* BROWSE LOCAL GIVING */}
       <section className="wc-section wc-soft" id="explore">
-        <div className="wc-container">
+        <div className="wc-container wc-browse">
           <div className="wc-row-between">
             <div>
               <h3 className="wc-h3">Browse local giving</h3>
@@ -198,7 +194,7 @@ export default function WarmConnectLanding() {
         </div>
       </section>
 
-      {/* Latest Shares */}
+      {/* LATEST SHARES */}
       <section className="wc-section">
         <div className="wc-container">
           <div className="wc-row-between">
@@ -232,7 +228,7 @@ export default function WarmConnectLanding() {
         </div>
       </section>
 
-      {/* Testimonial */}
+      {/* TESTIMONIAL */}
       <section className="wc-section">
         <div className="wc-container">
           <div className="wc-testimonial">
@@ -268,8 +264,8 @@ export default function WarmConnectLanding() {
         <div className="wc-container wc-cta-inner">
           <h2 className="wc-cta-title">Ready to connect with kindness?</h2>
           <p className="wc-cta-sub">
-            Whether you're clearing out your garage or looking for a hand up, the
-            WarmConnect community is here for you.
+            Whether you're clearing out your garage or looking for a hand up,
+            the WarmConnect community is here for you.
           </p>
 
           <div className="wc-cta-buttons">
@@ -283,13 +279,13 @@ export default function WarmConnectLanding() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* FOOTER */}
       <footer className="wc-footer">
         <div className="wc-container wc-footer-grid">
           <div className="wc-footer-brand">
-            <div className="wc-brand">
-              <LogoMark />
-              <span className="wc-brand-text">WarmConnect</span>
+            <div className="wc-footer-logoRow">
+              <span className="wc-footer-logoDot" aria-hidden="true" />
+              <span className="wc-footer-brandText">WarmConnect</span>
             </div>
 
             <p className="wc-footer-desc">
@@ -312,7 +308,6 @@ export default function WarmConnectLanding() {
               "Community Guidelines",
             ]}
           />
-
           <FooterCol
             title="Support"
             links={[
@@ -350,7 +345,7 @@ export default function WarmConnectLanding() {
   );
 }
 
-/* ---------------- Components ---------------- */
+/* Reusable UI blocks */
 
 function InfoCard({ icon, title, text }) {
   return (
@@ -394,9 +389,9 @@ function ListingCard({ s }) {
       </div>
 
       <div className="wc-listing-meta">
-        <div className="wc-pin" aria-hidden="true">
+        <span className="wc-pin" aria-hidden="true">
           ⦿
-        </div>
+        </span>
         <span>{s.meta}</span>
       </div>
 
@@ -423,46 +418,7 @@ function FooterCol({ title, links }) {
   );
 }
 
-/* ---------------- Icons ---------------- */
-
-function LogoMark() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M6.2 8.4c2.7-3.5 7.2-4.2 10.3-1.8 1.5 1.2 2.2 2.9 2.2 4.7 0 3.8-3.4 6.9-6.7 8.7-3-1.8-6.7-4.9-6.7-8.7 0-1.1.3-2.1.9-2.9z"
-        fill="var(--wc-orange)"
-        opacity="0.95"
-      />
-      <path
-        d="M4 13c.8 3.8 4.4 6.7 8 8.8 3.6-2.1 7.2-5 8-8.8"
-        fill="none"
-        stroke="var(--wc-orange-dark)"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path
-        d="M16.5 16.5 21 21"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
+/* ---------------- Inline SVG icons for cards/categories ---------------- */
 
 function UserPlusIcon() {
   return (
