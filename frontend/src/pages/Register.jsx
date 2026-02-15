@@ -45,102 +45,114 @@ export default function Register() {
 
   return (
     <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <h1>Create Account</h1>
-          <p className="auth-subtitle">Join our community</p>
+      <div className="auth-shell">
+        <div className="auth-panel auth-panel-left">
+          <div className="auth-orb" aria-hidden="true" />
+          <div className="auth-brand">
+            <span className="auth-brand-dot" aria-hidden="true" />
+            <span>WarmConnect</span>
+          </div>
+          <h2 className="auth-hero-title">Welcome to the WarmConnect Community!</h2>
+          <p className="auth-hero-sub">
+            Create your account to share items and support your neighbors.
+          </p>
         </div>
 
-        {msg && <div className="message success-message">{msg}</div>}
-        {error && <div className="message error-message">{error}</div>}
+        <div className="auth-panel auth-panel-right">
+          <div className="auth-form-wrap">
+            <div className="auth-avatar" aria-hidden="true" />
+            <div className="auth-header">
+              <p className="auth-subtitle">Register below to get started.</p>
+            </div>
 
-        <form onSubmit={submit} className="auth-form">
-          <div className="form-group">
-            <label htmlFor="name">Full Name</label>
-            <input
-              id="name"
-              type="text"
-              name="name"
-              placeholder="John Doe"
-              value={form.name}
-              onChange={onChange}
-              required
-            />
+            {msg && <div className="message success-message">{msg}</div>}
+            {error && <div className="message error-message">{error}</div>}
+
+            <form onSubmit={submit} className="auth-form">
+              <div className="form-group">
+                <input
+                  id="name"
+                  type="text"
+                  name="name"
+                  placeholder="Full Name"
+                  value={form.name}
+                  onChange={onChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group input-with-icon">
+                <span className="input-icon" aria-hidden="true">@</span>
+                <input
+                  id="email"
+                  type="email"
+                  name="email"
+                  placeholder="E-mail Address"
+                  value={form.email}
+                  onChange={onChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group input-with-icon">
+                <span className="input-icon" aria-hidden="true">*</span>
+                <input
+                  id="password"
+                  type="password"
+                  name="password"
+                  placeholder="Your Password"
+                  value={form.password}
+                  onChange={onChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <input
+                  id="phone"
+                  type="tel"
+                  name="phone"
+                  placeholder="Phone (Optional)"
+                  value={form.phone}
+                  onChange={onChange}
+                />
+              </div>
+
+              <div className="form-group">
+                <input
+                  id="address"
+                  type="text"
+                  name="address"
+                  placeholder="Address (Optional)"
+                  value={form.address}
+                  onChange={onChange}
+                />
+              </div>
+
+              <div className="form-group">
+                <select
+                  id="user_type"
+                  name="user_type"
+                  value={form.user_type}
+                  onChange={onChange}
+                >
+                  <option value="receiver">Receiver</option>
+                  <option value="donor">Donor</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+
+              <button type="submit" className="btn-primary">
+                Register
+              </button>
+            </form>
+
+            <div className="auth-footer">
+              <p>
+                Already have an account? <Link to="/login">Login</Link> here.
+              </p>
+            </div>
           </div>
-
-          <div className="form-group">
-            <label htmlFor="email">Email Address</label>
-            <input
-              id="email"
-              type="email"
-              name="email"
-              placeholder="you@example.com"
-              value={form.email}
-              onChange={onChange}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              name="password"
-              placeholder="Create a strong password"
-              value={form.password}
-              onChange={onChange}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="phone">Phone (Optional)</label>
-            <input
-              id="phone"
-              type="tel"
-              name="phone"
-              placeholder="Your phone number"
-              value={form.phone}
-              onChange={onChange}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="address">Address (Optional)</label>
-            <input
-              id="address"
-              type="text"
-              name="address"
-              placeholder="Your address"
-              value={form.address}
-              onChange={onChange}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="user_type">Account Type</label>
-            <select
-              id="user_type"
-              name="user_type"
-              value={form.user_type}
-              onChange={onChange}
-            >
-              <option value="receiver">Receiver</option>
-              <option value="donor">Donor</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-
-          <button type="submit" className="btn-primary">
-            Create Account
-          </button>
-        </form>
-
-        <div className="auth-footer">
-          <p>
-            Already have an account? <Link to="/login">Sign in</Link>
-          </p>
         </div>
       </div>
     </div>

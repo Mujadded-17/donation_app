@@ -40,49 +40,70 @@ export default function Login() {
 
   return (
     <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <h1>Welcome Back</h1>
-          <p className="auth-subtitle">Sign in to your account</p>
+      <div className="auth-shell">
+        <div className="auth-panel auth-panel-left">
+          <div className="auth-orb" aria-hidden="true" />
+          <div className="auth-brand">
+            <span className="auth-brand-dot" aria-hidden="true" />
+            <span>WarmConnect</span>
+          </div>
+          <h2 className="auth-hero-title">Welcome to the WarmConnect Community!</h2>
+          <p className="auth-hero-sub">
+            Share more, waste less, and build a kinder neighborhood.
+          </p>
         </div>
 
-        {msg && <div className="message success-message">{msg}</div>}
-        {error && <div className="message error-message">{error}</div>}
+        <div className="auth-panel auth-panel-right">
+          <div className="auth-form-wrap">
+            <div className="auth-avatar" aria-hidden="true" />
+            <div className="auth-header">
+              <p className="auth-subtitle">Login below to get started.</p>
+            </div>
 
-        <form onSubmit={submit} className="auth-form">
-          <div className="form-group">
-            <label htmlFor="email">Email Address</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-            />
+            {msg && <div className="message success-message">{msg}</div>}
+            {error && <div className="message error-message">{error}</div>}
+
+            <form onSubmit={submit} className="auth-form">
+              <div className="form-group input-with-icon">
+                <span className="input-icon" aria-hidden="true">@</span>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="E-mail Address"
+                  required
+                />
+              </div>
+
+              <div className="form-group input-with-icon">
+                <span className="input-icon" aria-hidden="true">*</span>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Your Password"
+                  required
+                />
+              </div>
+
+              <label className="auth-checkbox auth-checkbox-inline">
+                <input type="checkbox" />
+                <span>Keep me logged in</span>
+              </label>
+
+              <button type="submit" className="btn-primary">
+                Login
+              </button>
+            </form>
+
+            <div className="auth-footer">
+              <p>
+                New user? <Link to="/register">Register</Link> here.
+              </p>
+            </div>
           </div>
-
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-            />
-          </div>
-
-          <button type="submit" className="btn-primary">
-            Sign In
-          </button>
-        </form>
-
-        <div className="auth-footer">
-          <p>
-            Don't have an account? <Link to="/register">Create one</Link>
-          </p>
         </div>
       </div>
     </div>
