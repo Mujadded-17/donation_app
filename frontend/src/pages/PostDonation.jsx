@@ -102,7 +102,6 @@ export default function PostDonation() {
       formData.append("pickup_location", pickupLocation);
       formData.append("delivery_available", deliveryAvailable ? "1" : "0");
       formData.append("category_id", categoryId);
-      formData.append("status", "available");
       formData.append("image", image);
 
       const res = await axios.post(`${API}/items_create.php`, formData, {
@@ -114,7 +113,7 @@ export default function PostDonation() {
       console.log("PostDonation response:", res.data);
 
       if (res.data?.success) {
-        setMessage("✅ Donation posted successfully! It's now visible in Explore page.");
+        setMessage("✅ Donation submitted! It is pending admin review.");
         
         // Reset form
         setItemName("");

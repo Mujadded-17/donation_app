@@ -21,6 +21,20 @@ export default function MyDonations() {
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("All"); // All, Pending, Approved, Rejected
 
+  const toUiStatus = (rawStatus) => {
+    const normalized = String(rawStatus || "").trim().toLowerCase();
+
+    if (normalized === "approved" || normalized === "available") {
+      return "Approved";
+    }
+
+    if (normalized === "rejected" || normalized === "declined") {
+      return "Rejected";
+    }
+
+    return "Pending";
+  };
+
   useEffect(() => {
     if (!userId) {
       navigate("/login");
@@ -42,7 +56,11 @@ export default function MyDonations() {
       console.log("MyDonations response:", res.data);
 
       if (res.data?.success) {
-        setDonations(res.data.data || []);
+        const mappedDonations = (res.data.data || []).map((item) => ({
+          ...item,
+          uiStatus: toUiStatus(item.status),
+        }));
+        setDonations(mappedDonations);
         setError("");
       } else {
         const backendErr = res.data?.error ? ` - ${res.data.error}` : "";
@@ -67,7 +85,7 @@ export default function MyDonations() {
   const filteredDonations =
     filter === "All"
       ? donations
-      : donations.filter((d) => d.status === filter);
+      : donations.filter((d) => d.uiStatus === filter);
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
@@ -115,7 +133,7 @@ export default function MyDonations() {
               {tab}
               {tab !== "All" && (
                 <span className="wc-filter-count">
-                  {donations.filter((d) => d.status === tab).length}
+                  {donations.filter((d) => d.uiStatus === tab).length}
                 </span>
               )}
             </button>
@@ -178,15 +196,15 @@ export default function MyDonations() {
                           '<div class="wc-no-image">No Image</div>';
                       }}
                     />
-                    <span className={getStatusBadgeClass(donation.status)}>
-                      {donation.status}
+                    <span className={getStatusBadgeClass(donation.uiStatus)}>
+                      {donation.uiStatus}
                     </span>
                   </div>
                 ) : (
                   <div className="wc-donation-image">
                     <div className="wc-no-image">No Image</div>
-                    <span className={getStatusBadgeClass(donation.status)}>
-                      {donation.status}
+                    <span className={getStatusBadgeClass(donation.uiStatus)}>
+                      {donation.uiStatus}
                     </span>
                   </div>
                 )}

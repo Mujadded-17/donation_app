@@ -29,6 +29,9 @@ export default function Login() {
 
       if (res.data?.success) {
         localStorage.setItem("user", JSON.stringify(res.data.user));
+        if (res.data?.token) {
+          localStorage.setItem("token", res.data.token);
+        }
         setMsg("✅ Login success!");
         setTimeout(() => nav("/"), 600);
       } else {

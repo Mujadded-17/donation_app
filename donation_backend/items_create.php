@@ -22,7 +22,7 @@ $userId = isset($_POST["user_id"]) ? (int) $_POST["user_id"] : 0;
 $title = trim($_POST["title"] ?? "");
 $description = trim($_POST["description"] ?? "");
 $pickupLocation = trim($_POST["pickup_location"] ?? "");
-$status = trim($_POST["status"] ?? "Pending");
+$status = "pending";
 $deliveryAvailable = ($_POST["delivery_available"] ?? "0") === "1" ? 1 : 0;
 $categoryId = isset($_POST["category_id"]) ? (int) $_POST["category_id"] : 1;
 
@@ -110,6 +110,6 @@ if (!mysqli_stmt_execute($stmt)) {
 
 echo json_encode([
     "success" => true,
-    "message" => "Donation submitted successfully",
+    "message" => "Donation submitted and pending admin review",
     "item_id" => mysqli_insert_id($conn)
 ]);

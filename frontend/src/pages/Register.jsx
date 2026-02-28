@@ -35,11 +35,20 @@ export default function Register() {
         setMsg("✅ Registered! Now login.");
         setTimeout(() => nav("/login"), 600);
       } else {
-        setError(res.data?.message || "Registration failed");
+        const backendErr = res.data?.error ? ` - ${res.data.error}` : "";
+        setError((res.data?.message || "Registration failed") + backendErr);
       }
     } catch (err) {
-      console.log(err);
-      setError("API error. Check XAMPP + backend URL.");
+      console.error(err);
+      const backend = err?.response?.data;
+      if (backend?.message || backend?.error) {
+        const backendErr = backend?.error ? ` - ${backend.error}` : "";
+        setError((backend?.message || "Registration failed") + backendErr);
+      } else if (err?.message) {
+        setError(`Network error: ${err.message}. Check XAMPP and backend URL (${API})`);
+      } else {
+        setError("API error. Check XAMPP + backend URL.");
+      }
     }
   };
 
@@ -138,7 +147,6 @@ export default function Register() {
                 >
                   <option value="receiver">Receiver</option>
                   <option value="donor">Donor</option>
-                  <option value="admin">Admin</option>
                 </select>
               </div>
 

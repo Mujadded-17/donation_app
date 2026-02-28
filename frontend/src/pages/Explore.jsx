@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "../styles/explore.css";
 
 const API = import.meta.env.VITE_API_BASE_URL || "http://localhost/donation_backend";
+const ADMIN_EMAIL = "silviaadmin@gmail.com";
 
-// Category images mapping
 const categoryImages = {
   Clothes: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=400&h=300&fit=crop",
   Furniture: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop",
@@ -19,15 +18,17 @@ const categoryImages = {
 };
 
 export default function Explore() {
-  const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "null");
-  
+  const token = localStorage.getItem("token") || "";
+  const isAdmin = (user?.email || "").toLowerCase() === ADMIN_EMAIL;
+
   const [categories, setCategories] = useState([]);
   const [items, setItems] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionLoadingId, setActionLoadingId] = useState(0);
 
   useEffect(() => {
     fetchCategories();
@@ -48,25 +49,77 @@ export default function Explore() {
   const fetchItems = async (categoryId = null) => {
     setLoading(true);
     setError("");
-    
+
     try {
-      const userId = user?.user_id || 0;
-      let url = `${API}/explore_items.php?user_id=${userId}`;
-      if (categoryId) {
-        url += `&category_id=${categoryId}`;
+      let url;
+      let config = {};
+
+      if (isAdmin) {
+        url = `${API}/admin_pending_items.php`;
+        if (categoryId) {
+          url += `?category_id=${categoryId}`;
+        }
+        config = {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        };
+      } else {
+        const userId = user?.user_id || 0;
+        url = `${API}/explore_items.php?user_id=${userId}`;
+        if (categoryId) {
+          url += `&category_id=${categoryId}`;
+        }
       }
-      
-      const res = await axios.get(url);
+
+      const res = await axios.get(url, config);
       if (res.data?.success) {
         setItems(res.data.data || []);
       } else {
         setError(res.data?.message || "Failed to load items");
       }
     } catch (err) {
-      console.error("Failed to load items:", err);
-      setError("Failed to load items");
+      const backend = err?.response?.data;
+      if (backend?.message) {
+        setError(backend.message);
+      } else {
+        setError("Failed to load items");
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const reviewItem = async (itemId, action) => {
+    if (!isAdmin) {
+      return;
+    }
+
+    setActionLoadingId(itemId);
+    setError("");
+
+    try {
+      const res = await axios.post(
+        `${API}/admin_update_item_status.php`,
+        { item_id: itemId, action },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!res.data?.success) {
+        setError(res.data?.message || "Failed to review item");
+      }
+
+      await fetchItems(selectedCategory);
+    } catch (err) {
+      const backend = err?.response?.data;
+      setError(backend?.message || "Failed to review item");
+    } finally {
+      setActionLoadingId(0);
     }
   };
 
@@ -81,7 +134,8 @@ export default function Explore() {
   };
 
   const getItemsByCategory = (categoryId) => {
-    return items.filter((item) => item.category_id === categoryId);
+    const numericCategoryId = Number(categoryId);
+    return items.filter((item) => Number(item.category_id) === numericCategoryId);
   };
 
   const filteredCategories = categories.filter((cat) =>
@@ -91,8 +145,8 @@ export default function Explore() {
   return (
     <div className="explore-container">
       <div className="explore-header">
-        <h1>Explore Categories</h1>
-        
+        <h1>{isAdmin ? "Review Pending Donations" : "Explore Categories"}</h1>
+
         <div className="explore-filters">
           <input
             type="text"
@@ -101,7 +155,7 @@ export default function Explore() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          
+
           <select
             className="explore-dropdown"
             value={selectedCategory || "all"}
@@ -110,8 +164,10 @@ export default function Explore() {
               if (val === "all") {
                 handleAllCategories();
               } else {
-                const cat = categories.find((c) => c.category_id === parseInt(val));
-                if (cat) handleCategoryClick(cat);
+                const cat = categories.find((c) => c.category_id === parseInt(val, 10));
+                if (cat) {
+                  handleCategoryClick(cat);
+                }
               }
             }}
           >
@@ -131,7 +187,7 @@ export default function Explore() {
         {filteredCategories.map((category) => {
           const categoryItems = getItemsByCategory(category.category_id);
           const itemCount = categoryItems.length;
-          
+
           return (
             <div
               key={category.category_id}
@@ -166,7 +222,9 @@ export default function Explore() {
           {loading ? (
             <div className="loading">Loading items...</div>
           ) : items.length === 0 ? (
-            <div className="no-items-message">No items available in this category</div>
+            <div className="no-items-message">
+              {isAdmin ? "No pending items in this category" : "No items available in this category"}
+            </div>
           ) : (
             <div className="items-grid">
               {items.map((item) => (
@@ -191,10 +249,32 @@ export default function Explore() {
                       <span className="item-donor">By: {item.donor_name || "Anonymous"}</span>
                       <span className="item-location">📍 {item.pickup_location}</span>
                     </div>
+
                     {item.delivery_available === "1" && (
                       <span className="delivery-badge">🚚 Delivery Available</span>
                     )}
-                    <button className="btn-request">Request Item</button>
+
+                    {isAdmin ? (
+                      <div className="admin-actions">
+                        <span className="pending-badge">Pending Review</span>
+                        <button
+                          className="btn-approve"
+                          onClick={() => reviewItem(item.item_id, "approve")}
+                          disabled={actionLoadingId === item.item_id}
+                        >
+                          {actionLoadingId === item.item_id ? "Processing..." : "Approve"}
+                        </button>
+                        <button
+                          className="btn-decline"
+                          onClick={() => reviewItem(item.item_id, "decline")}
+                          disabled={actionLoadingId === item.item_id}
+                        >
+                          {actionLoadingId === item.item_id ? "Processing..." : "Decline"}
+                        </button>
+                      </div>
+                    ) : (
+                      <button className="btn-request">Request Item</button>
+                    )}
                   </div>
                 </div>
               ))}

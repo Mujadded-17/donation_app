@@ -9,6 +9,8 @@ if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
 }
 
 include "db.php";
+include "config.php";
+include "auth_guard.php";
 
 $data = json_decode(file_get_contents("php://input"), true);
 
@@ -47,6 +49,26 @@ if (!password_verify($password, $user["pass_hash"])) {
   exit;
 }
 
+$isAdmin = strtolower(trim($user["email"])) === strtolower(ADMIN_EMAIL);
+if ($isAdmin) {
+  $user["user_type"] = "admin";
+}
+
+$tokenPayload = [
+  "user_id" => (int) $user["user_id"],
+  "email" => $user["email"],
+  "role" => $isAdmin ? "admin" : $user["user_type"],
+  "iat" => time(),
+  "exp" => time() + (60 * 60 * 24)
+];
+
+$token = create_auth_token($tokenPayload);
+
 unset($user["pass_hash"]);
 
-echo json_encode(["success" => true, "user" => $user]);
+echo json_encode([
+  "success" => true,
+  "user" => $user,
+  "token" => $token,
+  "is_admin" => $isAdmin
+]);

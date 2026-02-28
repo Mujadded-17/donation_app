@@ -9,6 +9,7 @@ if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
 }
 
 include "db.php";
+include "config.php";
 
 $data = json_decode(file_get_contents("php://input"), true);
 
@@ -17,7 +18,16 @@ $email = trim($data["email"] ?? "");
 $password = $data["password"] ?? "";
 $phone = trim($data["phone"] ?? "");
 $address = trim($data["address"] ?? "");
-$user_type = trim($data["user_type"] ?? "receiver"); // default
+$requestedType = trim($data["user_type"] ?? "receiver");
+
+$isAdminEmail = strtolower($email) === strtolower(ADMIN_EMAIL);
+$user_type = "receiver";
+
+if ($isAdminEmail) {
+  $user_type = "admin";
+} elseif ($requestedType === "donor") {
+  $user_type = "donor";
+}
 
 if ($name === "" || $email === "" || $password === "") {
   echo json_encode(["success" => false, "message" => "name, email, password required"]);
@@ -26,12 +36,23 @@ if ($name === "" || $email === "" || $password === "") {
 
 $pass_hash = password_hash($password, PASSWORD_BCRYPT);
 
-$stmt = mysqli_prepare($conn, "INSERT INTO User (name, email, pass_hash, phone, address, user_type) VALUES (?, ?, ?, ?, ?, ?)");
+$stmt = mysqli_prepare($conn, "INSERT INTO user (name, email, pass_hash, phone, address, user_type) VALUES (?, ?, ?, ?, ?, ?)");
+if (!$stmt) {
+  echo json_encode(["success" => false, "message" => "DB prepare failed", "error" => mysqli_error($conn)]);
+  exit;
+}
+
 mysqli_stmt_bind_param($stmt, "ssssss", $name, $email, $pass_hash, $phone, $address, $user_type);
 
 if (mysqli_stmt_execute($stmt)) {
-  echo json_encode(["success" => true, "message" => "User registered"]);
+  echo json_encode(["success" => true, "message" => "User registered", "user_type" => $user_type]);
 } else {
-  // duplicate email error etc.
-  echo json_encode(["success" => false, "message" => "Registration failed", "error" => mysqli_error($conn)]);
+  $errNo = mysqli_errno($conn);
+  $err = mysqli_error($conn);
+
+  if ($errNo === 1062) {
+    echo json_encode(["success" => false, "message" => "Email already registered. Please login instead.", "error" => $err]);
+  } else {
+    echo json_encode(["success" => false, "message" => "Registration failed", "error" => $err]);
+  }
 }
