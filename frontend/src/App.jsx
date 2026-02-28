@@ -7,6 +7,7 @@ import Register from "./pages/Register";
 import Items from "./pages/Items";
 import PostDonation from "./pages/PostDonation";
 import MyDonations from "./pages/MyDonations";
+import Explore from "./pages/Explore";
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/items" element={<Items />} />
+        <Route path="/explore" element={<Explore />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/post-donation" element={<PostDonation />} />

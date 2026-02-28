@@ -99,7 +99,10 @@ export default function Home() {
               >
                 Post a Donation
               </button>
-              <button className="wc-btn wc-btn-outline wc-btn-lg">
+              <button 
+                className="wc-btn wc-btn-outline wc-btn-lg"
+                onClick={() => navigate("/explore")}
+              >
                 Explore Needs
               </button>
             </div>

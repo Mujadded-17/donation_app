@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "../styles/postdonation.css";
@@ -15,10 +15,30 @@ export default function PostDonation() {
   const [imagePreview, setImagePreview] = useState(null);
   const [pickupLocation, setPickupLocation] = useState("");
   const [deliveryAvailable, setDeliveryAvailable] = useState(false);
+  const [categoryId, setCategoryId] = useState("");
+  const [categories, setCategories] = useState([]);
   
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await axios.get(`${API}/categories_list.php`);
+      if (res.data?.success) {
+        setCategories(res.data.data || []);
+        if (res.data.data.length > 0) {
+          setCategoryId(res.data.data[0].category_id.toString());
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load categories:", err);
+    }
+  };
 
   // Check if user is logged in
   if (!user) {
@@ -62,6 +82,11 @@ export default function PostDonation() {
       return;
     }
 
+    if (!categoryId) {
+      setError("Please select a category");
+      return;
+    }
+
     if (!image) {
       setError("Please upload an image of the item");
       return;
@@ -76,7 +101,8 @@ export default function PostDonation() {
       formData.append("description", description);
       formData.append("pickup_location", pickupLocation);
       formData.append("delivery_available", deliveryAvailable ? "1" : "0");
-      formData.append("status", "Pending");
+      formData.append("category_id", categoryId);
+      formData.append("status", "available");
       formData.append("image", image);
 
       const res = await axios.post(`${API}/items_create.php`, formData, {
@@ -88,7 +114,7 @@ export default function PostDonation() {
       console.log("PostDonation response:", res.data);
 
       if (res.data?.success) {
-        setMessage("✅ Donation request submitted successfully! It will be reviewed by admin.");
+        setMessage("✅ Donation posted successfully! It's now visible in Explore page.");
         
         // Reset form
         setItemName("");
@@ -97,10 +123,11 @@ export default function PostDonation() {
         setImagePreview(null);
         setPickupLocation("");
         setDeliveryAvailable(false);
+        setCategoryId(categories.length > 0 ? categories[0].category_id.toString() : "");
 
-        // Navigate to My Donations after 2 seconds
+        // Navigate to Explore after 2 seconds
         setTimeout(() => {
-          navigate("/my-donations");
+          navigate("/explore");
         }, 2000);
       } else {
         const backendErr = res.data?.error ? ` - ${res.data.error}` : "";
@@ -221,6 +248,27 @@ export default function PostDonation() {
             />
           </div>
 
+          {/* Category */}
+          <div className="wc-form-group">
+            <label htmlFor="category" className="wc-form-label">
+              Category <span className="wc-required">*</span>
+            </label>
+            <select
+              id="category"
+              className="wc-form-input"
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              required
+            >
+              <option value="">Select a category</option>
+              {categories.map((cat) => (
+                <option key={cat.category_id} value={cat.category_id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Pickup Location */}
           <div className="wc-form-group">
             <label htmlFor="pickupLocation" className="wc-form-label">
@@ -253,8 +301,8 @@ export default function PostDonation() {
           <div className="wc-info-box">
             <div className="wc-info-icon">ℹ️</div>
             <div className="wc-info-text">
-              Your donation request will be reviewed by an admin. Once approved, it will 
-              appear on the browsing page for others to see and request.
+              Your donation will be posted immediately and appear on the Explore page 
+              for others to see and request. Make sure to select the correct category!
             </div>
           </div>
 

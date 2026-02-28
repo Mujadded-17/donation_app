@@ -37,7 +37,7 @@ export default function Navbar() {
 
         {/* Links (same as UI) */}
         <nav className="wc-nav-links" aria-label="Primary">
-          <a href="#explore">Explore</a>
+          <Link to="/explore">Explore</Link>
           <a href="#how">How it Works</a>
           <a href="#stories">Stories</a>
           {user && (
