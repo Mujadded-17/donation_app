@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "../styles/mydonations.css";
@@ -7,7 +7,14 @@ const API = import.meta.env.VITE_API_BASE_URL || "http://localhost/donation_back
 
 export default function MyDonations() {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const user = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  }, []);
+  const userId = user?.user_id;
 
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,29 +22,43 @@ export default function MyDonations() {
   const [filter, setFilter] = useState("All"); // All, Pending, Approved, Rejected
 
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       navigate("/login");
       return;
     }
 
     fetchMyDonations();
-  }, [user, navigate]);
+  }, [userId, navigate]);
 
   const fetchMyDonations = async () => {
+    if (!userId) return;
+
     setLoading(true);
     setError("");
 
     try {
-      const res = await axios.get(`${API}/my_donations.php?user_id=${user.user_id}`);
+      const res = await axios.get(`${API}/my_donations.php?user_id=${userId}`);
+
+      console.log("MyDonations response:", res.data);
 
       if (res.data?.success) {
         setDonations(res.data.data || []);
+        setError("");
       } else {
-        setError(res.data?.message || "Failed to load donations");
+        const backendErr = res.data?.error ? ` - ${res.data.error}` : "";
+        setError((res.data?.message || "Failed to load donations") + backendErr);
       }
     } catch (err) {
-      console.error(err);
-      setError("Failed to fetch donations. Please ensure the backend is running.");
+      console.error("MyDonations error:", err);
+      const backend = err?.response?.data;
+      if (backend?.message || backend?.error) {
+        const backendErr = backend?.error ? ` - ${backend.error}` : "";
+        setError((backend?.message || "API error") + backendErr);
+      } else if (err?.message) {
+        setError(`Network error: ${err.message}. Check XAMPP and backend URL (${API})`);
+      } else {
+        setError("Failed to fetch donations. Please ensure the backend is running.");
+      }
     } finally {
       setLoading(false);
     }
@@ -60,7 +81,7 @@ export default function MyDonations() {
     }
   };
 
-  if (!user) {
+  if (!userId) {
     return null;
   }
 

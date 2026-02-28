@@ -20,9 +20,19 @@ if ($email === "" || $password === "") {
   exit;
 }
 
-$stmt = mysqli_prepare($conn, "SELECT user_id, name, email, pass_hash, user_type FROM User WHERE email = ?");
+$stmt = mysqli_prepare($conn, "SELECT user_id, name, email, pass_hash, user_type FROM user WHERE email = ?");
+if (!$stmt) {
+  echo json_encode(["success" => false, "message" => "DB prepare failed", "error" => mysqli_error($conn)]);
+  exit;
+}
+
 mysqli_stmt_bind_param($stmt, "s", $email);
-mysqli_stmt_execute($stmt);
+
+if (!mysqli_stmt_execute($stmt)) {
+  echo json_encode(["success" => false, "message" => "DB execute failed", "error" => mysqli_stmt_error($stmt)]);
+  exit;
+}
+
 $result = mysqli_stmt_get_result($stmt);
 
 $user = mysqli_fetch_assoc($result);

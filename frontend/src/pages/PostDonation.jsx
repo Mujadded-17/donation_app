@@ -85,6 +85,8 @@ export default function PostDonation() {
         },
       });
 
+      console.log("PostDonation response:", res.data);
+
       if (res.data?.success) {
         setMessage("✅ Donation request submitted successfully! It will be reviewed by admin.");
         
@@ -101,11 +103,20 @@ export default function PostDonation() {
           navigate("/my-donations");
         }, 2000);
       } else {
-        setError(res.data?.message || "Failed to submit donation request");
+        const backendErr = res.data?.error ? ` - ${res.data.error}` : "";
+        setError((res.data?.message || "Failed to submit donation request") + backendErr);
       }
     } catch (err) {
-      console.error(err);
-      setError("Failed to submit. Please ensure the backend is running.");
+      console.error("PostDonation error:", err);
+      const backend = err?.response?.data;
+      if (backend?.message || backend?.error) {
+        const backendErr = backend?.error ? ` - ${backend.error}` : "";
+        setError((backend?.message || "Backend error") + backendErr);
+      } else if (err?.message) {
+        setError(`Network error: ${err.message}. Check XAMPP and backend URL (${API})`);
+      } else {
+        setError("Failed to submit. Please ensure the backend is running.");
+      }
     } finally {
       setLoading(false);
     }

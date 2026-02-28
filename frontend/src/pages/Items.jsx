@@ -12,10 +12,25 @@ export default function Items() {
     axios
       .get(`${API}/items_list.php`)
       .then((res) => {
+        console.log("Items response:", res.data);
         if (res.data?.success) setItems(res.data.data);
-        else setError(res.data?.message || "Failed to load items");
+        else {
+          const backendErr = res.data?.error ? ` - ${res.data.error}` : "";
+          setError((res.data?.message || "Failed to load items") + backendErr);
+        }
       })
-      .catch(() => setError("API call failed. Check XAMPP + backend URL."));
+      .catch((err) => {
+        console.error("Items error:", err);
+        const backend = err?.response?.data;
+        if (backend?.message || backend?.error) {
+          const backendErr = backend?.error ? ` - ${backend.error}` : "";
+          setError((backend?.message || "API error") + backendErr);
+        } else if (err?.message) {
+          setError(`Network error: ${err.message}. Check XAMPP and backend URL (${API})`);
+        } else {
+          setError("API call failed. Check XAMPP + backend URL.");
+        }
+      });
   }, []);
 
   return (

@@ -25,16 +25,27 @@ export default function Login() {
         { headers: { "Content-Type": "application/json" } }
       );
 
+      console.log("Login response:", res.data);
+
       if (res.data?.success) {
         localStorage.setItem("user", JSON.stringify(res.data.user));
         setMsg("✅ Login success!");
         setTimeout(() => nav("/"), 600);
       } else {
-        setError(res.data?.message || "Login failed");
+        const backendErr = res.data?.error ? ` - ${res.data.error}` : "";
+        setError((res.data?.message || "Login failed") + backendErr);
       }
     } catch (err) {
-      console.log(err);
-      setError("API error. Check XAMPP + backend URL.");
+      console.error("Login error:", err);
+      const backend = err?.response?.data;
+      if (backend?.message || backend?.error) {
+        const backendErr = backend?.error ? ` - ${backend.error}` : "";
+        setError((backend?.message || "API error") + backendErr);
+      } else if (err?.message) {
+        setError(`Network error: ${err.message}. Check XAMPP and backend URL (${API})`);
+      } else {
+        setError("API error. Check XAMPP + backend URL.");
+      }
     }
   };
 
