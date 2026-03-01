@@ -10,6 +10,8 @@ import MyDonations from "./pages/MyDonations";
 import Explore from "./pages/Explore";
 import ItemDetails from "./pages/ItemDetails";
 import Dashboard from "./pages/Dashboard";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 
 export default function App() {
@@ -26,6 +28,8 @@ export default function App() {
         <Route path="/my-donations" element={<MyDonations />} />
         <Route path="/item/:id" element={<ItemDetails />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
     </BrowserRouter>
   );
