@@ -124,6 +124,9 @@ export default function Login() {
               <p>
                 New user? <Link to="/register">Register</Link> here.
               </p>
+              <p>
+                <Link to="/forgot-password">Forgot password?</Link>
+              </p>
             </div>
           </div>
         </div>
