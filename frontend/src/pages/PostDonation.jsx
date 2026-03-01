@@ -72,81 +72,72 @@ export default function PostDonation() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage("");
-    setError("");
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setMessage("");
+  setError("");
 
-    if (!itemName.trim() || !description.trim() || !pickupLocation.trim()) {
-      setError("Please fill in all required fields");
-      return;
+  if (!itemName.trim() || !description.trim() || !pickupLocation.trim()) {
+    setError("Please fill in all required fields");
+    return;
+  }
+  if (!categoryId) {
+    setError("Please select a category");
+    return;
+  }
+  if (!image) {
+    setError("Please upload an image of the item");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const formData = new FormData();
+    formData.append("donor_id", user.user_id);                 // ✅ donor_id (matches DB)
+    formData.append("title", itemName);
+    formData.append("description", description);
+    formData.append("pickup_location", pickupLocation);
+    formData.append("delivery_available", deliveryAvailable ? "1" : "0");
+    formData.append("category_id", categoryId);
+    formData.append("image", image);                           // ✅ key must match $_FILES["image"]
+
+    const res = await axios.post(`${API}/items_create.php`, formData);
+    console.log("PostDonation response:", res.data);
+
+    if (res.data?.success) {
+      setMessage("✅ Donation submitted! It is pending admin review.");
+
+      setItemName("");
+      setDescription("");
+      setImage(null);
+      setImagePreview(null);
+      setPickupLocation("");
+      setDeliveryAvailable(false);
+      setCategoryId(categories.length > 0 ? categories[0].category_id.toString() : "");
+
+      setTimeout(() => {
+        navigate("/explore");
+      }, 1500);
+    } else {
+      const backendErr = res.data?.error ? ` - ${res.data.error}` : "";
+      setError((res.data?.message || "Failed to submit donation request") + backendErr);
     }
-
-    if (!categoryId) {
-      setError("Please select a category");
-      return;
+  } catch (err) {
+    console.error("PostDonation error:", err);
+    const backend = err?.response?.data;
+    if (backend?.message || backend?.error) {
+      const backendErr = backend?.error ? ` - ${backend.error}` : "";
+      setError((backend?.message || "Backend error") + backendErr);
+    } else if (err?.message) {
+      setError(`Network error: ${err.message}. Check XAMPP and backend URL (${API})`);
+    } else {
+      setError("Failed to submit. Please ensure the backend is running.");
     }
-
-    if (!image) {
-      setError("Please upload an image of the item");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("user_id", user.user_id);
-      formData.append("title", itemName);
-      formData.append("description", description);
-      formData.append("pickup_location", pickupLocation);
-      formData.append("delivery_available", deliveryAvailable ? "1" : "0");
-      formData.append("category_id", categoryId);
-      formData.append("image", image);
-
-      const res = await axios.post(`${API}/items_create.php`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      console.log("PostDonation response:", res.data);
-
-      if (res.data?.success) {
-        setMessage("✅ Donation submitted! It is pending admin review.");
-        
-        // Reset form
-        setItemName("");
-        setDescription("");
-        setImage(null);
-        setImagePreview(null);
-        setPickupLocation("");
-        setDeliveryAvailable(false);
-        setCategoryId(categories.length > 0 ? categories[0].category_id.toString() : "");
-
-        // Navigate to Explore after 2 seconds
-        setTimeout(() => {
-          navigate("/explore");
-        }, 2000);
-      } else {
-        const backendErr = res.data?.error ? ` - ${res.data.error}` : "";
-        setError((res.data?.message || "Failed to submit donation request") + backendErr);
-      }
-    } catch (err) {
-      console.error("PostDonation error:", err);
-      const backend = err?.response?.data;
-      if (backend?.message || backend?.error) {
-        const backendErr = backend?.error ? ` - ${backend.error}` : "";
-        setError((backend?.message || "Backend error") + backendErr);
-      } else if (err?.message) {
-        setError(`Network error: ${err.message}. Check XAMPP and backend URL (${API})`);
-      } else {
-        setError("Failed to submit. Please ensure the backend is running.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="wc-post-container">
