@@ -87,13 +87,20 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                <div className="wc-user-mini" title={user?.name || "User"}>
-                  <div className="wc-avatar" aria-hidden="true" />
-                  <UserIcon />
-                  <span className="wc-user-mini-name">
-                    {user?.name || "User"}
-                  </span>
-                </div>
+                <div
+  className="wc-user-mini wc-user-mini-click"
+  title="Go to Dashboard"
+  role="button"
+  tabIndex={0}
+  onClick={() => navigate("/dashboard")}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" || e.key === " ") navigate("/dashboard");
+  }}
+>
+  <div className="wc-avatar" aria-hidden="true" />
+  <UserIcon />
+  <span className="wc-user-mini-name">{user?.name || "User"}</span>
+</div>
 
                 <button
                   type="button"

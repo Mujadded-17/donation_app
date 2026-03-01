@@ -9,6 +9,8 @@ import PostDonation from "./pages/PostDonation";
 import MyDonations from "./pages/MyDonations";
 import Explore from "./pages/Explore";
 import ItemDetails from "./pages/ItemDetails";
+import Dashboard from "./pages/Dashboard";
+
 
 export default function App() {
   return (
@@ -23,6 +25,7 @@ export default function App() {
         <Route path="/post-donation" element={<PostDonation />} />
         <Route path="/my-donations" element={<MyDonations />} />
         <Route path="/item/:id" element={<ItemDetails />} />
+        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>
   );

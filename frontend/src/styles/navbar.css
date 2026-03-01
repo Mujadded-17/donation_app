@@ -167,3 +167,23 @@
   .wc-nav-links{ display:none; }
   .wc-search{ display:none; }
 }
+.wc-user-mini-click {
+  cursor: pointer;
+  user-select: none;
+}
+
+.wc-user-mini-click:hover {
+  box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+  transform: translateY(-1px);
+  transition: 0.15s ease;
+}
+
+.wc-user-mini-click:active {
+  transform: translateY(0px);
+}
+
+.wc-user-mini-click:focus {
+  outline: 2px solid rgba(255, 107, 45, 0.35);
+  outline-offset: 3px;
+  border-radius: 999px;
+}
