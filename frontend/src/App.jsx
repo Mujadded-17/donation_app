@@ -8,6 +8,7 @@ import Items from "./pages/Items";
 import PostDonation from "./pages/PostDonation";
 import MyDonations from "./pages/MyDonations";
 import Explore from "./pages/Explore";
+import ItemDetails from "./pages/ItemDetails";
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/post-donation" element={<PostDonation />} />
         <Route path="/my-donations" element={<MyDonations />} />
+        <Route path="/item/:id" element={<ItemDetails />} />
       </Routes>
     </BrowserRouter>
   );
