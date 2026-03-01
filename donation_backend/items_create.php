@@ -10,6 +10,7 @@ if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
 }
 
 require_once "db.php";
+require_once "mail.php"; // ✅ ADD THIS
 
 // ✅ read form fields
 $title = trim($_POST["title"] ?? "");
@@ -94,12 +95,39 @@ $stmt->bind_param(
 );
 
 if ($stmt->execute()) {
+
+    // ✅ Donation / Item ID
+    $item_id = $conn->insert_id;
+
+    // ✅ Send thank-you email (do NOT block success if email fails)
+    $emailSent = false;
+    $emailError = null;
+
+    $stmtU = $conn->prepare("SELECT name, email FROM `user` WHERE user_id=?");
+    if ($stmtU) {
+        $stmtU->bind_param("i", $donor_id);
+        $stmtU->execute();
+        $donor = $stmtU->get_result()->fetch_assoc();
+        $stmtU->close();
+
+        if ($donor && !empty($donor["email"])) {
+            [$ok, $err] = sendThankYouEmail($donor["email"], $donor["name"], $item_id);
+            $emailSent = $ok;
+            $emailError = $ok ? null : $err;
+            // Optional: log failures
+            // if (!$ok) error_log("Thank-you email failed: " . $err);
+        }
+    }
+
     echo json_encode([
         "success" => true,
         "message" => "Item posted successfully",
-        "item_id" => $stmt->insert_id,
-        "image" => $imageName
+        "item_id" => $item_id,
+        "image" => $imageName,
+        "email_sent" => $emailSent,
+        "email_error" => $emailError
     ]);
+
 } else {
     echo json_encode([
         "success" => false,
@@ -107,3 +135,6 @@ if ($stmt->execute()) {
         "error" => $stmt->error
     ]);
 }
+
+$stmt->close();
+$conn->close();
