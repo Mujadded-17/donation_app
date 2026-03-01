@@ -5,111 +5,105 @@ header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Content-Type: application/json");
 
 if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
+    http_response_code(200);
     exit;
 }
 
-if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    echo json_encode([
-        "success" => false,
-        "message" => "Only POST method is allowed"
-    ]);
-    exit;
-}
+require_once "db.php";
 
-include "db.php";
-
-$userId = isset($_POST["user_id"]) ? (int) $_POST["user_id"] : 0;
+// ✅ read form fields
 $title = trim($_POST["title"] ?? "");
 $description = trim($_POST["description"] ?? "");
-$pickupLocation = trim($_POST["pickup_location"] ?? "");
-$status = "pending";
-$deliveryAvailable = ($_POST["delivery_available"] ?? "0") === "1" ? 1 : 0;
-$categoryId = isset($_POST["category_id"]) ? (int) $_POST["category_id"] : 1;
+$pickup_location = trim($_POST["pickup_location"] ?? "");
+$donor_id = (int)($_POST["donor_id"] ?? 0);
+$category_id = (int)($_POST["category_id"] ?? 0);
+$delivery_available = isset($_POST["delivery_available"]) ? (int)$_POST["delivery_available"] : 0;
 
-if ($userId <= 0 || $title === "" || $description === "" || $pickupLocation === "") {
+if ($title === "" || $donor_id <= 0 || $category_id <= 0) {
     echo json_encode([
         "success" => false,
-        "message" => "user_id, title, description, and pickup_location are required"
+        "message" => "Missing required fields (title, donor_id, category_id)"
     ]);
     exit;
 }
 
-if (!isset($_FILES["image"]) || $_FILES["image"]["error"] !== UPLOAD_ERR_OK) {
-    echo json_encode([
-        "success" => false,
-        "message" => "Valid image file is required"
-    ]);
-    exit;
+// ✅ handle upload (key name must be "image" in frontend FormData)
+$imageName = null;
+
+if (isset($_FILES["image"]) && $_FILES["image"]["error"] === UPLOAD_ERR_OK) {
+    $tmp = $_FILES["image"]["tmp_name"];
+    $original = basename($_FILES["image"]["name"]);
+
+    $ext = strtolower(pathinfo($original, PATHINFO_EXTENSION));
+    $allowed = ["jpg", "jpeg", "png", "webp"];
+
+    if (!in_array($ext, $allowed)) {
+        echo json_encode([
+            "success" => false,
+            "message" => "Invalid image type. Allowed: jpg, jpeg, png, webp"
+        ]);
+        exit;
+    }
+
+    // ✅ safe unique name
+    $safeBase = preg_replace("/[^a-zA-Z0-9._-]/", "_", pathinfo($original, PATHINFO_FILENAME));
+    $imageName = time() . "_" . $safeBase . "." . $ext;
+
+    $uploadDir = __DIR__ . "/uploads/";
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
+    }
+
+    $dest = $uploadDir . $imageName;
+
+    if (!move_uploaded_file($tmp, $dest)) {
+        echo json_encode([
+            "success" => false,
+            "message" => "Failed to save image on server"
+        ]);
+        exit;
+    }
 }
 
-$imageFile = $_FILES["image"];
-$imageType = mime_content_type($imageFile["tmp_name"]);
-if ($imageType === false || strpos($imageType, "image/") !== 0) {
-    echo json_encode([
-        "success" => false,
-        "message" => "Uploaded file must be an image"
-    ]);
-    exit;
-}
-
-$uploadDir = __DIR__ . "/uploads/items/";
-if (!is_dir($uploadDir)) {
-    mkdir($uploadDir, 0777, true);
-}
-
-$extension = pathinfo($imageFile["name"], PATHINFO_EXTENSION);
-$safeExtension = $extension ? strtolower($extension) : "jpg";
-$fileName = "item_" . time() . "_" . bin2hex(random_bytes(4)) . "." . $safeExtension;
-$fullPath = $uploadDir . $fileName;
-$relativePath = "uploads/items/" . $fileName;
-
-if (!move_uploaded_file($imageFile["tmp_name"], $fullPath)) {
-    echo json_encode([
-        "success" => false,
-        "message" => "Failed to save uploaded image"
-    ]);
-    exit;
-}
-
-$stmt = mysqli_prepare(
-    $conn,
-    "INSERT INTO item (title, description, images, status, delivery_available, pickup_location, donor_id, category_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-);
+// ✅ Insert item (store ONLY filename)
+$stmt = $conn->prepare("
+  INSERT INTO item
+    (title, description, images, status, delivery_available, pickup_location, donor_id, category_id)
+  VALUES
+    (?, ?, ?, 'available', ?, ?, ?, ?)
+");
 
 if (!$stmt) {
     echo json_encode([
         "success" => false,
-        "message" => "Failed to prepare query",
-        "error" => mysqli_error($conn)
+        "message" => "Prepare failed",
+        "error" => $conn->error
     ]);
     exit;
 }
 
-mysqli_stmt_bind_param(
-    $stmt,
-    "ssssisii",
+$stmt->bind_param(
+    "sssissi",
     $title,
     $description,
-    $relativePath,
-    $status,
-    $deliveryAvailable,
-    $pickupLocation,
-    $userId,
-    $categoryId
+    $imageName,          // ✅ only filename saved
+    $delivery_available,
+    $pickup_location,
+    $donor_id,
+    $category_id
 );
 
-if (!mysqli_stmt_execute($stmt)) {
+if ($stmt->execute()) {
+    echo json_encode([
+        "success" => true,
+        "message" => "Item posted successfully",
+        "item_id" => $stmt->insert_id,
+        "image" => $imageName
+    ]);
+} else {
     echo json_encode([
         "success" => false,
-        "message" => "Failed to create donation item",
-        "error" => mysqli_stmt_error($stmt)
+        "message" => "Insert failed",
+        "error" => $stmt->error
     ]);
-    exit;
 }
-
-echo json_encode([
-    "success" => true,
-    "message" => "Donation submitted and pending admin review",
-    "item_id" => mysqli_insert_id($conn)
-]);

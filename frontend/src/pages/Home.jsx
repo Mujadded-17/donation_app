@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/home.css";
 
@@ -6,46 +6,41 @@ export default function Home() {
   const navigate = useNavigate();
   const sliderRef = useRef(null);
 
-  const slides = useMemo(
-    () => [
-      {
-        tag: "BOOKS",
-        img: "/images/card-books.jpg",
-        title: "Children's Picture Books",
-        meta: "Brooklyn, NY (5 mi)",
-        desc: "A set of 10 classic...",
-        cta: "Request Item",
-      },
-      {
-        tag: "FOOD",
-        img: "/images/card-produce.jpg",
-        title: "Fresh Garden Produce",
-        meta: "Queens, NY (2.1 mi)",
-        desc: "Excess harvest from my backyard garden.",
-        cta: "Request Item",
-      },
-      {
-        tag: "CLOTHES",
-        img: "/images/card-jacket.jpg",
-        title: "Men's Winter Parka",
-        meta: "Jersey City, NJ (3.5 mi)",
-        desc: "Size Large, extremely warm and waterproof...",
-        cta: "Request Item",
-      },
-      {
-        tag: "HELP",
-        img: null,
-        title: "Emergency Groceries",
-        meta: "Manhattan, NY (0.8 mi)",
-        desc: "Offering assistance to anyone struggling to buy...",
-        cta: "Contact Neighbor",
-      },
-    ],
-    []
-  );
+  const API_BASE = "http://localhost/donation_backend";
+
+  const [latestItems, setLatestItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const [canScroll, setCanScroll] = useState({ left: false, right: true });
 
+  // ✅ Fetch latest items from DB
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const res = await fetch(`${API_BASE}/items_list.php?limit=8`);
+        const json = await res.json();
+
+        if (!json?.success) {
+          throw new Error(json?.message || "Failed to load items");
+        }
+
+        setLatestItems(json.data || []);
+      } catch (err) {
+        setError(err?.message || "Failed to fetch");
+        setLatestItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchItems();
+  }, []);
+
+  // ✅ Slider arrow control
   useEffect(() => {
     const el = sliderRef.current;
     if (!el) return;
@@ -64,7 +59,7 @@ export default function Home() {
       el.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
     };
-  }, []);
+  }, [latestItems]);
 
   const scrollByCards = (dir) => {
     const el = sliderRef.current;
@@ -93,13 +88,13 @@ export default function Home() {
             </p>
 
             <div className="wc-hero-ctas">
-              <button 
+              <button
                 className="wc-btn wc-btn-solid wc-btn-lg"
                 onClick={() => navigate("/post-donation")}
               >
                 Post a Donation
               </button>
-              <button 
+              <button
                 className="wc-btn wc-btn-outline wc-btn-lg"
                 onClick={() => navigate("/explore")}
               >
@@ -202,7 +197,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* LATEST SHARES */}
+      {/* ✅ LATEST SHARES (FROM DATABASE) */}
       <section className="wc-section">
         <div className="wc-container">
           <div className="wc-row-between">
@@ -229,9 +224,31 @@ export default function Home() {
           </div>
 
           <div className="wc-slider" ref={sliderRef}>
-            {slides.map((s) => (
-              <ListingCard key={s.title} s={s} />
-            ))}
+            {loading && (
+              <div style={{ padding: 12 }}>Loading latest shares...</div>
+            )}
+
+            {!loading && error && (
+              <div style={{ padding: 12, color: "red" }}>
+                Error: {error}
+              </div>
+            )}
+
+            {!loading && !error && latestItems.length === 0 && (
+              <div style={{ padding: 12 }}>
+                No shares yet. Be the first to post!
+              </div>
+            )}
+
+            {!loading &&
+              !error &&
+              latestItems.map((item) => (
+                <ListingCard
+                  key={item.item_id}
+                  item={item}
+                  onClick={() => navigate(`/item/${item.item_id}`)}
+                />
+              ))}
           </div>
         </div>
       </section>
@@ -374,19 +391,33 @@ function CategoryChip({ icon, label }) {
   );
 }
 
-function ListingCard({ s }) {
+/* ✅ Listing Card (DB item) */
+function ListingCard({ item, onClick }) {
+  const desc =
+    item?.description && item.description.trim().length > 0
+      ? item.description
+      : "No description";
+
   return (
-    <div className="wc-listing">
+    <div
+      className="wc-listing"
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => e.key === "Enter" && onClick?.()}
+    >
       <div className="wc-listing-top">
-        <div className="wc-tag">{s.tag}</div>
+        <div className="wc-tag">
+          {(item.category_name || "SHARE").toUpperCase()}
+        </div>
         <div className="wc-like" aria-hidden="true">
           ♡
         </div>
       </div>
 
       <div className="wc-listing-media">
-        {s.img ? (
-          <img src={s.img} alt="" />
+        {item.image_url ? (
+          <img src={item.image_url} alt={item.title || "Item"} />
         ) : (
           <div className="wc-listing-empty">
             <div className="wc-heart" aria-hidden="true">
@@ -400,13 +431,23 @@ function ListingCard({ s }) {
         <span className="wc-pin" aria-hidden="true">
           ⦿
         </span>
-        <span>{s.meta}</span>
+        <span>{item.pickup_location || "Location not set"}</span>
       </div>
 
-      <div className="wc-listing-title">{s.title}</div>
-      <div className="wc-listing-desc">{s.desc}</div>
+      <div className="wc-listing-title">{item.title}</div>
+      <div className="wc-listing-desc">
+        {desc.length > 70 ? desc.slice(0, 70) + "..." : desc}
+      </div>
 
-      <button className="wc-listing-cta">{s.cta}</button>
+      <button
+        className="wc-listing-cta"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick?.();
+        }}
+      >
+        {item.status === "available" ? "Request Item" : "View"}
+      </button>
     </div>
   );
 }
