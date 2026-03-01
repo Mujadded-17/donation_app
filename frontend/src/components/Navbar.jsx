@@ -1,28 +1,45 @@
-
-Navbar.jsx
-
-
-
-
-
-import React, { useMemo } from "react";
+// src/components/Navbar.jsx
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/navbar.css";
 
 export default function Navbar() {
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
 
-  const user = useMemo(() => {
+  const readUser = () => {
     try {
       return JSON.parse(localStorage.getItem("user") || "null");
     } catch {
       return null;
     }
+  };
+
+  useEffect(() => {
+    // initial load
+    setUser(readUser());
+
+    // other tabs/windows
+    const onStorage = () => setUser(readUser());
+    window.addEventListener("storage", onStorage);
+
+    // same tab updates (login/logout/register)
+    const onAuthChanged = () => setUser(readUser());
+    window.addEventListener("auth-changed", onAuthChanged);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("auth-changed", onAuthChanged);
+    };
   }, []);
 
   const logout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+
+    // notify navbar + app (same tab)
+    window.dispatchEvent(new Event("auth-changed"));
+
     navigate("/login");
   };
 
@@ -35,19 +52,19 @@ export default function Navbar() {
           <span className="wc-brand-text">WarmConnect</span>
         </Link>
 
-        {/* Links (same as UI) */}
+        {/* Links */}
         <nav className="wc-nav-links" aria-label="Primary">
           <Link to="/explore">Explore</Link>
           <a href="#how">How it Works</a>
           <a href="#stories">Stories</a>
           {user && (
-            <Link to="/my-donations" style={{ color: 'var(--wc-orange)' }}>
+            <Link to="/my-donations" className="wc-active-link">
               My Donations
             </Link>
           )}
         </nav>
 
-        {/* Right */}
+        {/* Right cluster: Search + Actions */}
         <div className="wc-nav-right">
           <div className="wc-search" role="search">
             <SearchIcon />
@@ -58,43 +75,36 @@ export default function Navbar() {
             />
           </div>
 
-          {!user ? (
-            <>
-              <Link to="/login" className="wc-btn wc-btn-ghost">
-                Login
-              </Link>
-
-              <button
-                type="button"
-                className="wc-btn wc-btn-solid"
-                onClick={() => navigate("/login")}
-              >
-                Post a Donation
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="wc-user-chip" title={`${user?.name} (${user?.user_type})`}>
-                <div className="wc-user-avatar" aria-hidden="true" />
-                <div className="wc-user-text">
-                  <div className="wc-user-name">{user?.name || "User"}</div>
-                  <div className="wc-user-role">{user?.user_type || "member"}</div>
+          <div className="wc-nav-actions">
+            {!user ? (
+              <>
+                <Link to="/login" className="wc-btn wc-btn-ghost">
+                  Login
+                </Link>
+                <Link to="/register" className="wc-btn wc-btn-solid">
+                  Register
+                </Link>
+              </>
+            ) : (
+              <>
+                <div className="wc-user-mini" title={user?.name || "User"}>
+                  <div className="wc-avatar" aria-hidden="true" />
+                  <UserIcon />
+                  <span className="wc-user-mini-name">
+                    {user?.name || "User"}
+                  </span>
                 </div>
-              </div>
 
-              <button type="button" className="wc-btn wc-btn-ghost" onClick={logout}>
-                Logout
-              </button>
-
-              <button 
-                type="button" 
-                className="wc-btn wc-btn-solid"
-                onClick={() => navigate("/post-donation")}
-              >
-                Post a Donation
-              </button>
-            </>
-          )}
+                <button
+                  type="button"
+                  className="wc-btn wc-btn-ghost"
+                  onClick={logout}
+                >
+                  Logout
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </header>
@@ -132,6 +142,26 @@ function SearchIcon() {
       />
       <path
         d="M16.5 16.5 21 21"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg className="wc-user-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M12 12a4.2 4.2 0 1 0-4.2-4.2A4.2 4.2 0 0 0 12 12Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <path
+        d="M4.5 20a7.5 7.5 0 0 1 15 0"
         fill="none"
         stroke="currentColor"
         strokeWidth="2"

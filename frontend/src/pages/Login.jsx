@@ -1,9 +1,11 @@
+// src/pages/Login.jsx  (your file with the ONLY required change added)
 import { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/Login.css";
 
-const API = import.meta.env.VITE_API_BASE_URL || "http://localhost/donation_backend";
+const API =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost/donation_backend";
 
 export default function Login() {
   const nav = useNavigate();
@@ -32,6 +34,10 @@ export default function Login() {
         if (res.data?.token) {
           localStorage.setItem("token", res.data.token);
         }
+
+        // ✅ IMPORTANT: update Navbar immediately in SAME TAB
+        window.dispatchEvent(new Event("auth-changed"));
+
         setMsg("✅ Login success!");
         setTimeout(() => nav("/"), 600);
       } else {
@@ -45,7 +51,9 @@ export default function Login() {
         const backendErr = backend?.error ? ` - ${backend.error}` : "";
         setError((backend?.message || "API error") + backendErr);
       } else if (err?.message) {
-        setError(`Network error: ${err.message}. Check XAMPP and backend URL (${API})`);
+        setError(
+          `Network error: ${err.message}. Check XAMPP and backend URL (${API})`
+        );
       } else {
         setError("API error. Check XAMPP + backend URL.");
       }
