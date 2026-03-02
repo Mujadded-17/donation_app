@@ -94,7 +94,9 @@ export default function PostDonation() {
 
   try {
     const formData = new FormData();
-    formData.append("donor_id", user.user_id);                 // ✅ donor_id (matches DB)
+    const currentUserId = user?.user_id || user?.id || 0;
+    formData.append("donor_id", currentUserId);
+    formData.append("user_id", currentUserId);
     formData.append("title", itemName);
     formData.append("description", description);
     formData.append("pickup_location", pickupLocation);
