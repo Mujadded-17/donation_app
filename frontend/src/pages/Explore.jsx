@@ -142,10 +142,13 @@ export default function Explore() {
     cat.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const selectedCategoryName =
+    categories.find((c) => c.category_id === selectedCategory)?.name || "All Categories";
+
   return (
     <div className="explore-container">
       <div className="explore-header">
-        <h1>{isAdmin ? "Review Pending Donations" : "Explore Categories"}</h1>
+        <h1>{isAdmin ? "Review Pending Donations" : "Explore Needs"}</h1>
 
         <div className="explore-filters">
           <input
@@ -155,133 +158,118 @@ export default function Explore() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-
-          <select
-            className="explore-dropdown"
-            value={selectedCategory || "all"}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === "all") {
-                handleAllCategories();
-              } else {
-                const cat = categories.find((c) => c.category_id === parseInt(val, 10));
-                if (cat) {
-                  handleCategoryClick(cat);
-                }
-              }
-            }}
-          >
-            <option value="all">All Categories</option>
-            {categories.map((cat) => (
-              <option key={cat.category_id} value={cat.category_id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
         </div>
       </div>
 
       {error && <div className="explore-error">{error}</div>}
 
-      <div className="categories-grid">
+      <div className="categories-strip">
+        <button
+          type="button"
+          className={`category-pill ${selectedCategory === null ? "is-active" : ""}`}
+          onClick={handleAllCategories}
+        >
+          <span className="category-pill-icon all-pill">All</span>
+          <span className="category-pill-name">All</span>
+          <span className="category-pill-count">{items.length} items</span>
+        </button>
+
         {filteredCategories.map((category) => {
           const categoryItems = getItemsByCategory(category.category_id);
           const itemCount = categoryItems.length;
 
           return (
-            <div
+            <button
+              type="button"
               key={category.category_id}
-              className="category-card"
+              className={`category-pill ${selectedCategory === category.category_id ? "is-active" : ""}`}
               onClick={() => handleCategoryClick(category)}
-              style={{
-                backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)), url(${categoryImages[category.name] || categoryImages.Clothes})`,
-              }}
             >
-              <div className="category-content">
-                <h3>{category.name}</h3>
-                <p className={itemCount > 0 ? "has-items" : "no-items"}>
-                  {itemCount > 0 ? `${itemCount} items` : "No items"}
-                </p>
-              </div>
-            </div>
+              <span
+                className="category-pill-icon"
+                style={{
+                  backgroundImage: `url(${categoryImages[category.name] || categoryImages.Clothes})`,
+                }}
+              />
+              <span className="category-pill-name">{category.name}</span>
+              <span className="category-pill-count">{itemCount} items</span>
+            </button>
           );
         })}
       </div>
 
-      {selectedCategory && (
-        <div className="items-section">
-          <div className="items-header">
-            <h2>
-              {categories.find((c) => c.category_id === selectedCategory)?.name || "Items"}
-            </h2>
+      <div className="items-section">
+        <div className="items-header">
+          <h2>{selectedCategoryName}</h2>
+          {selectedCategory && (
             <button className="btn-back" onClick={handleAllCategories}>
               ← Back to Categories
             </button>
-          </div>
-
-          {loading ? (
-            <div className="loading">Loading items...</div>
-          ) : items.length === 0 ? (
-            <div className="no-items-message">
-              {isAdmin ? "No pending items in this category" : "No items available in this category"}
-            </div>
-          ) : (
-            <div className="items-grid">
-              {items.map((item) => (
-                <div key={item.item_id} className="item-card">
-                  <div className="item-image">
-                    {item.images ? (
-                      <img
-                        src={`${API}/${item.images}`}
-                        alt={item.title}
-                        onError={(e) => {
-                          e.target.src = "https://via.placeholder.com/300x200?text=No+Image";
-                        }}
-                      />
-                    ) : (
-                      <div className="no-image">No Image</div>
-                    )}
-                  </div>
-                  <div className="item-details">
-                    <h3>{item.title}</h3>
-                    <p className="item-description">{item.description}</p>
-                    <div className="item-meta">
-                      <span className="item-donor">By: {item.donor_name || "Anonymous"}</span>
-                      <span className="item-location">📍 {item.pickup_location}</span>
-                    </div>
-
-                    {item.delivery_available === "1" && (
-                      <span className="delivery-badge">🚚 Delivery Available</span>
-                    )}
-
-                    {isAdmin ? (
-                      <div className="admin-actions">
-                        <span className="pending-badge">Pending Review</span>
-                        <button
-                          className="btn-approve"
-                          onClick={() => reviewItem(item.item_id, "approve")}
-                          disabled={actionLoadingId === item.item_id}
-                        >
-                          {actionLoadingId === item.item_id ? "Processing..." : "Approve"}
-                        </button>
-                        <button
-                          className="btn-decline"
-                          onClick={() => reviewItem(item.item_id, "decline")}
-                          disabled={actionLoadingId === item.item_id}
-                        >
-                          {actionLoadingId === item.item_id ? "Processing..." : "Decline"}
-                        </button>
-                      </div>
-                    ) : (
-                      <button className="btn-request">Request Item</button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
           )}
         </div>
-      )}
+
+        {loading ? (
+          <div className="loading">Loading items...</div>
+        ) : items.length === 0 ? (
+          <div className="no-items-message">
+            {isAdmin ? "No pending items in this category" : "No items available in this category"}
+          </div>
+        ) : (
+          <div className="items-grid">
+            {items.map((item) => (
+              <div key={item.item_id} className="item-card">
+                <div className="item-image">
+                  {item.images ? (
+                    <img
+                      src={`${API}/${item.images}`}
+                      alt={item.title}
+                      onError={(e) => {
+                        e.target.src = "https://via.placeholder.com/300x200?text=No+Image";
+                      }}
+                    />
+                  ) : (
+                    <div className="no-image">No Image</div>
+                  )}
+                </div>
+                <div className="item-details">
+                  <h3>{item.title}</h3>
+                  <p className="item-description">{item.description}</p>
+                  <div className="item-meta">
+                    <span className="item-donor">By: {item.donor_name || "Anonymous"}</span>
+                    <span className="item-location">📍 {item.pickup_location}</span>
+                  </div>
+
+                  {item.delivery_available === "1" && (
+                    <span className="delivery-badge">🚚 Delivery Available</span>
+                  )}
+
+                  {isAdmin ? (
+                    <div className="admin-actions">
+                      <span className="pending-badge">Pending Review</span>
+                      <button
+                        className="btn-approve"
+                        onClick={() => reviewItem(item.item_id, "approve")}
+                        disabled={actionLoadingId === item.item_id}
+                      >
+                        {actionLoadingId === item.item_id ? "Processing..." : "Approve"}
+                      </button>
+                      <button
+                        className="btn-decline"
+                        onClick={() => reviewItem(item.item_id, "decline")}
+                        disabled={actionLoadingId === item.item_id}
+                      >
+                        {actionLoadingId === item.item_id ? "Processing..." : "Decline"}
+                      </button>
+                    </div>
+                  ) : (
+                    <button className="btn-request">Request Item</button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
