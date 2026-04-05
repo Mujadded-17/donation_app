@@ -19,6 +19,7 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 
 include "db.php";
 include "auth_guard.php";
+include "chat_bootstrap.php";
 
 $authUser = require_auth($conn);
 $user_id = (int)$authUser["user_id"];
@@ -38,7 +39,7 @@ if ($item_id === 0) {
 }
 
 // Check if item exists and is available
-$stmt = mysqli_prepare($conn, "SELECT item_id, donor_id, status FROM item WHERE item_id = ?");
+$stmt = mysqli_prepare($conn, "SELECT item_id, donor_id, status, title FROM item WHERE item_id = ?");
 if (!$stmt) {
     http_response_code(500);
     echo json_encode([
@@ -132,6 +133,56 @@ mysqli_stmt_bind_param($stmt, "iii", $item_id, $donor_id, $user_id);
 if (mysqli_stmt_execute($stmt)) {
     $donation_id = mysqli_insert_id($conn);
     mysqli_stmt_close($stmt);
+
+    // Seed chat with an automatic first message from receiver to donor.
+    if (!ensure_chat_table($conn)) {
+        mysqli_query($conn, "DELETE FROM donation WHERE donation_id = " . (int)$donation_id);
+        http_response_code(500);
+        echo json_encode([
+            "success" => false,
+            "message" => "Failed to initialize chat for this request",
+            "error" => mysqli_error($conn)
+        ]);
+        exit;
+    }
+
+    $receiverName = trim((string)($authUser["name"] ?? ""));
+    if ($receiverName === "") {
+        $receiverName = "A receiver";
+    }
+
+    $itemTitle = trim((string)($item["title"] ?? "this item"));
+    $autoMessage = "Hi! " . $receiverName . " requested \"" . $itemTitle . "\". Please coordinate pickup details here.";
+
+    $chatStmt = mysqli_prepare(
+        $conn,
+        "INSERT INTO donation_message (donation_id, sender_id, message) VALUES (?, ?, ?)"
+    );
+
+    if (!$chatStmt) {
+        mysqli_query($conn, "DELETE FROM donation WHERE donation_id = " . (int)$donation_id);
+        http_response_code(500);
+        echo json_encode([
+            "success" => false,
+            "message" => "Request created but chat initialization failed",
+            "error" => mysqli_error($conn)
+        ]);
+        exit;
+    }
+
+    mysqli_stmt_bind_param($chatStmt, "iis", $donation_id, $user_id, $autoMessage);
+    if (!mysqli_stmt_execute($chatStmt)) {
+        mysqli_stmt_close($chatStmt);
+        mysqli_query($conn, "DELETE FROM donation WHERE donation_id = " . (int)$donation_id);
+        http_response_code(500);
+        echo json_encode([
+            "success" => false,
+            "message" => "Request created but first chat message failed",
+            "error" => mysqli_error($conn)
+        ]);
+        exit;
+    }
+    mysqli_stmt_close($chatStmt);
 
     $message = "You have a new request for your item";
     $type = "donation_request";
