@@ -8,6 +8,7 @@ const API = import.meta.env.VITE_API_BASE_URL || "http://localhost/donation_back
 export default function PostDonation() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "null");
+  const token = localStorage.getItem("token") || "";
 
   const [itemName, setItemName] = useState("");
   const [description, setDescription] = useState("");
@@ -41,7 +42,7 @@ export default function PostDonation() {
   };
 
   // Check if user is logged in
-  if (!user) {
+  if (!user || !token) {
     return (
       <div className="wc-post-container">
         <div className="wc-post-card">
@@ -104,7 +105,11 @@ export default function PostDonation() {
     formData.append("category_id", categoryId);
     formData.append("image", image);                           // ✅ key must match $_FILES["image"]
 
-    const res = await axios.post(`${API}/items_create.php`, formData);
+    const res = await axios.post(`${API}/items_create.php`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     console.log("PostDonation response:", res.data);
 
     if (res.data?.success) {
