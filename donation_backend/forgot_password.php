@@ -48,8 +48,8 @@ $stmtDel->bind_param("i", $user["user_id"]);
 $stmtDel->execute();
 $stmtDel->close();
 
-// Save new reset request
-$stmtIns = $conn->prepare("INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?, ?, ?)");
+// Save new reset request - using 'token' column instead of 'token_hash'
+$stmtIns = $conn->prepare("INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)");
 $stmtIns->bind_param("iss", $user["user_id"], $token_hash, $expires_at);
 $stmtIns->execute();
 $stmtIns->close();

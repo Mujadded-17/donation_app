@@ -33,11 +33,11 @@ if (strlen($newPassword) < 6) {
 
 $token_hash = hash("sha256", $token);
 
-// Verify token exists and not expired
+// Verify token exists and not expired - using 'token' column
 $stmt = $conn->prepare("
   SELECT id, user_id, expires_at
   FROM password_resets
-  WHERE token_hash = ?
+  WHERE token = ?
   LIMIT 1
 ");
 $stmt->bind_param("s", $token_hash);

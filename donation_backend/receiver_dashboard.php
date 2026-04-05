@@ -9,6 +9,7 @@ if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
 }
 
 if ($_SERVER["REQUEST_METHOD"] !== "GET") {
+    http_response_code(405);
     echo json_encode([
         "success" => false,
         "message" => "Only GET method is allowed"
@@ -17,15 +18,10 @@ if ($_SERVER["REQUEST_METHOD"] !== "GET") {
 }
 
 include "db.php";
+include "auth_guard.php";
 
-$userId = isset($_GET["user_id"]) ? (int) $_GET["user_id"] : 0;
-if ($userId <= 0) {
-    echo json_encode([
-        "success" => false,
-        "message" => "Valid user_id is required"
-    ]);
-    exit;
-}
+$authUser = require_auth($conn);
+$userId = (int)$authUser["user_id"];
 
 $stmt = mysqli_prepare(
     $conn,
@@ -50,6 +46,7 @@ $stmt = mysqli_prepare(
 );
 
 if (!$stmt) {
+    http_response_code(500);
     echo json_encode([
         "success" => false,
         "message" => "Failed to prepare query",
@@ -61,6 +58,7 @@ if (!$stmt) {
 mysqli_stmt_bind_param($stmt, "i", $userId);
 
 if (!mysqli_stmt_execute($stmt)) {
+    http_response_code(500);
     echo json_encode([
         "success" => false,
         "message" => "Failed to fetch receiver dashboard data",
@@ -75,6 +73,8 @@ $data = [];
 while ($row = mysqli_fetch_assoc($result)) {
     $data[] = $row;
 }
+
+mysqli_stmt_close($stmt);
 
 echo json_encode([
     "success" => true,

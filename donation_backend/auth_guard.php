@@ -22,9 +22,11 @@ function create_auth_token($payload)
         base64url_encode_custom(json_encode($header)),
         base64url_encode_custom(json_encode($payload))
     ];
+
     $signingInput = implode('.', $segments);
     $signature = hash_hmac('sha256', $signingInput, APP_TOKEN_SECRET, true);
     $segments[] = base64url_encode_custom($signature);
+
     return implode('.', $segments);
 }
 
@@ -36,8 +38,11 @@ function verify_auth_token($token)
     }
 
     [$headerB64, $payloadB64, $sigB64] = $parts;
+
     $signingInput = $headerB64 . '.' . $payloadB64;
-    $expectedSig = base64url_encode_custom(hash_hmac('sha256', $signingInput, APP_TOKEN_SECRET, true));
+    $expectedSig = base64url_encode_custom(
+        hash_hmac('sha256', $signingInput, APP_TOKEN_SECRET, true)
+    );
 
     if (!hash_equals($expectedSig, $sigB64)) {
         return null;
@@ -48,7 +53,7 @@ function verify_auth_token($token)
         return null;
     }
 
-    if (isset($payload["exp"]) && time() > (int) $payload["exp"]) {
+    if (isset($payload["exp"]) && time() > (int)$payload["exp"]) {
         return null;
     }
 
@@ -63,6 +68,8 @@ function get_bearer_token()
         $headers = apache_request_headers();
         if (isset($headers['Authorization'])) {
             $authHeader = $headers['Authorization'];
+        } elseif (isset($headers['authorization'])) {
+            $authHeader = $headers['authorization'];
         }
     }
 
@@ -73,48 +80,103 @@ function get_bearer_token()
     return trim($matches[1]);
 }
 
-function require_admin_auth($conn)
+function require_auth($conn = null)
 {
     $token = get_bearer_token();
     if (!$token) {
-        echo json_encode(["success" => false, "message" => "Missing authorization token"]);
+        http_response_code(401);
+        echo json_encode([
+            "success" => false,
+            "message" => "Missing authorization token"
+        ]);
         exit;
     }
 
     $payload = verify_auth_token($token);
     if (!$payload) {
-        echo json_encode(["success" => false, "message" => "Invalid or expired token"]);
+        http_response_code(401);
+        echo json_encode([
+            "success" => false,
+            "message" => "Invalid or expired token"
+        ]);
         exit;
     }
 
-    $email = strtolower(trim($payload["email"] ?? ""));
-    $userId = (int) ($payload["user_id"] ?? 0);
+    $userId = (int)($payload["user_id"] ?? 0);
+    $email = trim($payload["email"] ?? "");
     $role = trim($payload["role"] ?? "");
 
-    if ($email !== strtolower(ADMIN_EMAIL) || $role !== "admin" || $userId <= 0) {
-        echo json_encode(["success" => false, "message" => "Admin access denied"]);
+    if ($userId <= 0 || $email === "") {
+        http_response_code(401);
+        echo json_encode([
+            "success" => false,
+            "message" => "Invalid token payload"
+        ]);
         exit;
     }
 
-    $stmt = mysqli_prepare($conn, "SELECT user_id, email FROM user WHERE user_id = ? AND email = ? LIMIT 1");
-    if (!$stmt) {
-        echo json_encode(["success" => false, "message" => "DB prepare failed", "error" => mysqli_error($conn)]);
-        exit;
-    }
+    if ($conn) {
+        $stmt = mysqli_prepare(
+            $conn,
+            "SELECT user_id, email, user_type FROM user WHERE user_id = ? LIMIT 1"
+        );
 
-    mysqli_stmt_bind_param($stmt, "is", $userId, $email);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-    $admin = mysqli_fetch_assoc($result);
+        if (!$stmt) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "DB prepare failed",
+                "error" => mysqli_error($conn)
+            ]);
+            exit;
+        }
 
-    if (!$admin) {
-        echo json_encode(["success" => false, "message" => "Admin account not found"]);
-        exit;
+        mysqli_stmt_bind_param($stmt, "i", $userId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $user = mysqli_fetch_assoc($result);
+        mysqli_stmt_close($stmt);
+
+        if (!$user) {
+            http_response_code(401);
+            echo json_encode([
+                "success" => false,
+                "message" => "User not found"
+            ]);
+            exit;
+        }
+
+        return [
+            "user_id" => (int)$user["user_id"],
+            "email" => $user["email"],
+            "role" => strtolower(trim($user["email"])) === strtolower(ADMIN_EMAIL)
+                ? "admin"
+                : $user["user_type"]
+        ];
     }
 
     return [
         "user_id" => $userId,
         "email" => $email,
-        "role" => "admin"
+        "role" => $role
     ];
+}
+
+function require_admin_auth($conn)
+{
+    $auth = require_auth($conn);
+
+    if (
+        strtolower(trim($auth["email"])) !== strtolower(ADMIN_EMAIL) ||
+        trim($auth["role"]) !== "admin"
+    ) {
+        http_response_code(403);
+        echo json_encode([
+            "success" => false,
+            "message" => "Admin access denied"
+        ]);
+        exit;
+    }
+
+    return $auth;
 }

@@ -1,6 +1,6 @@
 <?php
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Content-Type: application/json");
 
@@ -11,6 +11,10 @@ if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
 
 require_once "db.php";
 require_once "config.php";
+require_once "auth_guard.php";
+
+$authUser = require_auth($conn);
+$donor_id = (int)$authUser["user_id"];
 
 // Try to load mail module (optional - doesn't break donation if unavailable)
 $mailReady = false;
@@ -28,23 +32,23 @@ if (file_exists($simplePath)) {
     }
 }
 
-// ✅ read form fields
+// read form fields
 $title = trim($_POST["title"] ?? "");
 $description = trim($_POST["description"] ?? "");
 $pickup_location = trim($_POST["pickup_location"] ?? "");
-$donor_id = (int)($_POST["donor_id"] ?? ($_POST["user_id"] ?? 0));
 $category_id = (int)($_POST["category_id"] ?? 0);
 $delivery_available = isset($_POST["delivery_available"]) ? (int)$_POST["delivery_available"] : 0;
 
-if ($title === "" || $description === "" || $pickup_location === "" || $donor_id <= 0 || $category_id <= 0) {
+if ($title === "" || $description === "" || $pickup_location === "" || $category_id <= 0) {
+    http_response_code(400);
     echo json_encode([
         "success" => false,
-        "message" => "user_id, title, description, and pickup_location are required"
+        "message" => "title, description, pickup_location, and category_id are required"
     ]);
     exit;
 }
 
-// ✅ handle upload (key name must be "image" in frontend FormData)
+// handle upload
 $imageName = null;
 
 if (isset($_FILES["image"]) && $_FILES["image"]["error"] === UPLOAD_ERR_OK) {
@@ -55,6 +59,7 @@ if (isset($_FILES["image"]) && $_FILES["image"]["error"] === UPLOAD_ERR_OK) {
     $allowed = ["jpg", "jpeg", "png", "webp"];
 
     if (!in_array($ext, $allowed)) {
+        http_response_code(400);
         echo json_encode([
             "success" => false,
             "message" => "Invalid image type. Allowed: jpg, jpeg, png, webp"
@@ -62,7 +67,6 @@ if (isset($_FILES["image"]) && $_FILES["image"]["error"] === UPLOAD_ERR_OK) {
         exit;
     }
 
-    // ✅ safe unique name
     $safeBase = preg_replace("/[^a-zA-Z0-9._-]/", "_", pathinfo($original, PATHINFO_FILENAME));
     $imageName = time() . "_" . $safeBase . "." . $ext;
 
@@ -74,19 +78,18 @@ if (isset($_FILES["image"]) && $_FILES["image"]["error"] === UPLOAD_ERR_OK) {
     $dest = $uploadDir . $imageName;
 
     if (!move_uploaded_file($tmp, $dest)) {
+        http_response_code(500);
         echo json_encode([
             "success" => false,
             "message" => "Failed to save image on server"
         ]);
         exit;
     }
-    
-    // ✅ Store relative path with /uploads/ prefix
+
     $imageName = "uploads/" . $imageName;
 }
 
-// ✅ Insert item (store relative path)
-$stmt = $conn->prepare(" 
+$stmt = $conn->prepare("
   INSERT INTO item
         (title, description, images, status, delivery_available, pickup_location, donor_id, category_id)
   VALUES
@@ -94,6 +97,7 @@ $stmt = $conn->prepare("
 ");
 
 if (!$stmt) {
+    http_response_code(500);
     echo json_encode([
         "success" => false,
         "message" => "Prepare failed",
@@ -106,7 +110,7 @@ $stmt->bind_param(
     "sssissi",
     $title,
     $description,
-    $imageName,          // ✅ full relative path (uploads/filename)
+    $imageName,
     $delivery_available,
     $pickup_location,
     $donor_id,
@@ -114,16 +118,13 @@ $stmt->bind_param(
 );
 
 if ($stmt->execute()) {
-
-    // ✅ Donation / Item ID
     $item_id = $conn->insert_id;
 
-    // ✅ Send thank-you email (do NOT block success if email fails)
     $emailSent = false;
     $emailError = null;
 
     try {
-        $stmtU = $conn->prepare("SELECT name, email FROM `user` WHERE user_id=?");
+        $stmtU = $conn->prepare("SELECT name, email FROM `user` WHERE user_id = ?");
         if ($stmtU) {
             $stmtU->bind_param("i", $donor_id);
             $stmtU->execute();
@@ -140,7 +141,6 @@ if ($stmt->execute()) {
             }
         }
     } catch (Throwable $e) {
-        // Email failed but don't block donation success
         $emailSent = false;
         $emailError = "Mail error: " . $e->getMessage();
     }
@@ -153,8 +153,8 @@ if ($stmt->execute()) {
         "email_sent" => $emailSent,
         "email_error" => $emailError
     ]);
-
 } else {
+    http_response_code(500);
     echo json_encode([
         "success" => false,
         "message" => "Insert failed",
