@@ -19,6 +19,36 @@
   margin-bottom: 16px;
 }
 
+.admin-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  padding: 10px 24px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: 2px solid #e8c3a8;
+  background: white;
+  color: #d97634;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tab-btn:hover {
+  border-color: #d97634;
+  background: #fff7ef;
+}
+
+.tab-btn.active {
+  background: #d97634;
+  color: white;
+  border-color: #d97634;
+}
+
 .explore-filters {
   display: flex;
   justify-content: center;
@@ -292,6 +322,17 @@
 .pending-badge {
   display: inline-block;
   background: #f39c12;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.approved-badge {
+  display: inline-block;
+  background: #27ae60;
   color: white;
   padding: 6px 10px;
   border-radius: 20px;
