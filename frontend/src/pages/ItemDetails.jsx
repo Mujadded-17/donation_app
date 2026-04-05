@@ -11,12 +11,15 @@ export default function ItemDetails() {
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const token = localStorage.getItem("token") || "";
+  const userRole = String(user?.user_type || user?.role || "").trim().toLowerCase();
 
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [requesting, setRequesting] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [requested, setRequested] = useState(false);
+  const [requestedDonationId, setRequestedDonationId] = useState(0);
 
   useEffect(() => {
     const loadItem = async () => {
@@ -32,6 +35,29 @@ export default function ItemDetails() {
         }
 
         setItem(res.data.item);
+
+        if (token && userRole === "receiver") {
+          try {
+            const statusRes = await axios.get(
+              `${API}/request_status.php?item_id=${res.data.item.item_id}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
+            if (statusRes.data?.success && statusRes.data?.requested) {
+              setRequested(true);
+              setRequestedDonationId(Number(statusRes.data?.donation_id || 0));
+            } else {
+              setRequested(false);
+              setRequestedDonationId(0);
+            }
+          } catch {
+            // Ignore request-status failures; item details should still load.
+          }
+        }
       } catch (e) {
         setErr(e.message || "Failed to load item");
       } finally {
@@ -48,7 +74,7 @@ export default function ItemDetails() {
       return;
     }
 
-    if (user.user_type !== "receiver") {
+    if (userRole !== "receiver") {
       setErr("Only receivers can request items.");
       return;
     }
@@ -78,9 +104,16 @@ export default function ItemDetails() {
         throw new Error(res.data?.message || "Request failed");
       }
 
+      setRequested(true);
+      setRequestedDonationId(Number(res.data?.donation_id || 0));
       setSuccessMsg("Request sent successfully!");
+
+      // Keep user on details page and show requested state.
     } catch (e) {
       const backendMessage = e?.response?.data?.message;
+      if ((backendMessage || "").toLowerCase().includes("already requested")) {
+        setRequested(true);
+      }
       setErr(backendMessage || e.message || "Request failed");
     } finally {
       setRequesting(false);
@@ -134,7 +167,7 @@ export default function ItemDetails() {
           {successMsg && <div className="success-msg">{successMsg}</div>}
           {err && item && <div className="item-error"><p>{err}</p></div>}
 
-          {item?.status === "available" && user?.user_type === "receiver" && (
+          {item?.status === "available" && userRole === "receiver" && !requested && (
             <button
               className="btn-request"
               onClick={handleRequest}
@@ -142,6 +175,20 @@ export default function ItemDetails() {
             >
               {requesting ? "Requesting..." : "Request Item"}
             </button>
+          )}
+
+          {item?.status === "available" && userRole === "receiver" && requested && (
+            <>
+              <div className="claimed-badge">You already requested this item</div>
+              {requestedDonationId > 0 && (
+                <button
+                  className="btn-request"
+                  onClick={() => navigate(`/chat/${requestedDonationId}`)}
+                >
+                  Open Chat
+                </button>
+              )}
+            </>
           )}
 
           {!user && (
