@@ -23,6 +23,7 @@ export default function Explore() {
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const token = localStorage.getItem("token") || "";
+  const userRole = String(user?.user_type || user?.role || "").trim().toLowerCase();
   const isAdmin = (user?.email || "").toLowerCase() === ADMIN_EMAIL;
 
   const [categories, setCategories] = useState([]);
@@ -32,6 +33,7 @@ export default function Explore() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoadingId, setActionLoadingId] = useState(0);
+  const [requestLoadingId, setRequestLoadingId] = useState(0);
   const [reviewTab, setReviewTab] = useState("pending");
 
   useEffect(() => {
@@ -130,6 +132,56 @@ export default function Explore() {
       setError(backend?.message || "Failed to review item");
     } finally {
       setActionLoadingId(0);
+    }
+  };
+
+  const requestItem = async (itemId) => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    if (userRole !== "receiver") {
+      setError("Only receiver accounts can request items");
+      return;
+    }
+
+    if (!token) {
+      setError("You must be logged in to request an item");
+      return;
+    }
+
+    setRequestLoadingId(itemId);
+    setError("");
+
+    try {
+      const res = await axios.post(
+        `${API}/request_item.php`,
+        { item_id: itemId },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!res.data?.success) {
+        setError(res.data?.message || "Request failed");
+        return;
+      }
+
+      // Remove requested item from this list to avoid duplicate request click.
+      setItems((prev) => prev.filter((it) => Number(it.item_id) !== Number(itemId)));
+
+      if (res.data?.donation_id) {
+        navigate(`/chat/${res.data.donation_id}`);
+      }
+    } catch (err) {
+      const backend = err?.response?.data;
+      setError(backend?.message || "Request failed");
+    } finally {
+      setRequestLoadingId(0);
     }
   };
 
@@ -323,10 +375,11 @@ export default function Explore() {
                       className="btn-request"
                       onClick={(e) => {
                         e.stopPropagation();
-                        openItemDetails(item.item_id);
+                        requestItem(item.item_id);
                       }}
+                      disabled={requestLoadingId === item.item_id}
                     >
-                      View Details
+                      {requestLoadingId === item.item_id ? "Requesting..." : "Request Item"}
                     </button>
                   )}
                 </div>
