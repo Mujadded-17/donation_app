@@ -13,24 +13,20 @@ require_once "db.php";
 require_once "config.php";
 require_once "auth_guard.php";
 
-$authUser = require_auth($conn);
-$donor_id = (int)$authUser["user_id"];
-
-// Try to load mail module (optional - doesn't break donation if unavailable)
+// ✅ Use PHPMailer version first
 $mailReady = false;
 $mailBootstrapError = null;
 
-// Try simple mail first (no external dependencies)
-$simplePath = __DIR__ . "/mail_simple.php";
-if (file_exists($simplePath)) {
-    try {
-        require_once $simplePath;
-        $mailReady = function_exists("sendThankYouEmail");
-    } catch (Throwable $e) {
-        $mailReady = false;
-        $mailBootstrapError = $e->getMessage();
-    }
+try {
+    require_once __DIR__ . "/mail.php";
+    $mailReady = function_exists("sendThankYouEmail");
+} catch (Throwable $e) {
+    $mailReady = false;
+    $mailBootstrapError = $e->getMessage();
 }
+
+$authUser = require_auth($conn);
+$donor_id = (int)$authUser["user_id"];
 
 // read form fields
 $title = trim($_POST["title"] ?? "");
@@ -131,14 +127,19 @@ if ($stmt->execute()) {
             $donor = $stmtU->get_result()->fetch_assoc();
             $stmtU->close();
 
-            if ($donor && !empty($donor["email"]) && $mailReady && function_exists("sendThankYouEmail")) {
-                [$ok, $err] = sendThankYouEmail($donor["email"], $donor["name"], $item_id);
-                $emailSent = $ok;
-                $emailError = $ok ? null : $err;
-            } elseif ($donor && !empty($donor["email"])) {
-                $emailSent = false;
-                $emailError = $mailBootstrapError ? ("mail disabled: " . $mailBootstrapError) : "mail not configured";
+            if ($donor && !empty($donor["email"])) {
+                if ($mailReady && function_exists("sendThankYouEmail")) {
+                    [$ok, $err] = sendThankYouEmail($donor["email"], $donor["name"], $item_id);
+                    $emailSent = $ok;
+                    $emailError = $ok ? null : $err;
+                } else {
+                    $emailError = $mailBootstrapError ?: "mail.php not loaded";
+                }
+            } else {
+                $emailError = "Donor email not found";
             }
+        } else {
+            $emailError = "Failed to prepare donor lookup";
         }
     } catch (Throwable $e) {
         $emailSent = false;
