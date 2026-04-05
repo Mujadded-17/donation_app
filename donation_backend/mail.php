@@ -181,3 +181,65 @@ function sendDonationDeclinedEmail($toEmail, $toName, $donationId, $itemTitle = 
         return [false, $e->getMessage()];
     }
 }
+
+function sendItemRequestToDonorEmail(
+    $toEmail,
+    $toName,
+    $receiverName,
+    $receiverEmail,
+    $itemTitle,
+    $donationId
+) {
+    if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
+        return [false, "Invalid donor email"];
+    }
+
+    try {
+        $mail = baseMailer();
+
+        $safeDonorName = htmlspecialchars($toName ?: "Donor", ENT_QUOTES, "UTF-8");
+        $safeReceiverName = htmlspecialchars($receiverName ?: "A receiver", ENT_QUOTES, "UTF-8");
+        $safeReceiverEmail = htmlspecialchars($receiverEmail ?: "Not provided", ENT_QUOTES, "UTF-8");
+        $safeItemTitle = htmlspecialchars($itemTitle ?: "your item", ENT_QUOTES, "UTF-8");
+
+        $mail->addAddress($toEmail, $toName ?: "Donor");
+        $mail->isHTML(true);
+        $mail->Subject = "New request for your donation item";
+
+        $mail->Body = "
+            <div style='font-family: Arial, sans-serif; line-height:1.6; max-width:600px; margin:0 auto;'>
+                <div style='background:#f8f9fa; padding:20px; border-radius:10px;'>
+                    <h2 style='margin:0 0 12px; color:#2563eb;'>Hello, {$safeDonorName}!</h2>
+                    <p>You have received a new request for your donation item on <b>WarmConnect</b>.</p>
+
+                    <div style='background:#fff; padding:15px; border-left:4px solid #2563eb; margin:15px 0;'>
+                        <p style='margin:6px 0;'><b>Item:</b> {$safeItemTitle}</p>
+                        <p style='margin:6px 0;'><b>Request ID:</b> {$donationId}</p>
+                        <p style='margin:6px 0;'><b>Requested by:</b> {$safeReceiverName}</p>
+                        <p style='margin:6px 0;'><b>Receiver Email:</b> {$safeReceiverEmail}</p>
+                        <p style='margin:6px 0;'><b>Status:</b> Requested</p>
+                    </div>
+
+                    <p>Please log in to your account and check the request/chat section to continue.</p>
+                    <p style='color:#666; font-size:13px; margin-top:20px;'>WarmConnect Team</p>
+                </div>
+            </div>
+        ";
+
+        $mail->AltBody =
+            "Hello, " . ($toName ?: "Donor") . "!\n\n" .
+            "You have received a new request for your donation item.\n" .
+            "Item: " . ($itemTitle ?: "your item") . "\n" .
+            "Request ID: {$donationId}\n" .
+            "Requested by: " . ($receiverName ?: "A receiver") . "\n" .
+            "Receiver Email: " . ($receiverEmail ?: "Not provided") . "\n" .
+            "Status: Requested\n\n" .
+            "Please log in to your account and check the request/chat section.\n\n" .
+            "WarmConnect Team";
+
+        $mail->send();
+        return [true, null];
+    } catch (Exception $e) {
+        return [false, $e->getMessage()];
+    }
+}

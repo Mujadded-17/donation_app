@@ -20,6 +20,7 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 include "db.php";
 include "auth_guard.php";
 include "chat_bootstrap.php";
+include "mail.php";
 
 $authUser = require_auth($conn);
 $user_id = (int)$authUser["user_id"];
@@ -27,7 +28,7 @@ $user_id = (int)$authUser["user_id"];
 $json = file_get_contents("php://input");
 $data = json_decode($json, true);
 
-$item_id = isset($data['item_id']) ? intval($data['item_id']) : 0;
+$item_id = isset($data["item_id"]) ? intval($data["item_id"]) : 0;
 
 if ($item_id === 0) {
     http_response_code(400);
@@ -39,7 +40,20 @@ if ($item_id === 0) {
 }
 
 // Check if item exists and is available
-$stmt = mysqli_prepare($conn, "SELECT item_id, donor_id, status, title FROM item WHERE item_id = ?");
+$stmt = mysqli_prepare($conn, "
+    SELECT 
+        i.item_id,
+        i.donor_id,
+        i.status,
+        i.title,
+        u.name AS donor_name,
+        u.email AS donor_email
+    FROM item i
+    LEFT JOIN user u ON i.donor_id = u.user_id
+    WHERE i.item_id = ?
+    LIMIT 1
+");
+
 if (!$stmt) {
     http_response_code(500);
     echo json_encode([
@@ -65,7 +79,7 @@ if (!$item) {
     exit;
 }
 
-if ($item['status'] !== 'available') {
+if ($item["status"] !== "available") {
     http_response_code(400);
     echo json_encode([
         "success" => false,
@@ -74,7 +88,7 @@ if ($item['status'] !== 'available') {
     exit;
 }
 
-if ((int)$item['donor_id'] === $user_id) {
+if ((int)$item["donor_id"] === $user_id) {
     http_response_code(400);
     echo json_encode([
         "success" => false,
@@ -127,7 +141,7 @@ if (!$stmt) {
     exit;
 }
 
-$donor_id = (int)$item['donor_id'];
+$donor_id = (int)$item["donor_id"];
 mysqli_stmt_bind_param($stmt, "iii", $item_id, $donor_id, $user_id);
 
 if (mysqli_stmt_execute($stmt)) {
@@ -151,7 +165,9 @@ if (mysqli_stmt_execute($stmt)) {
         $receiverName = "A receiver";
     }
 
+    $receiverEmail = trim((string)($authUser["email"] ?? ""));
     $itemTitle = trim((string)($item["title"] ?? "this item"));
+
     $autoMessage = "Hi! " . $receiverName . " requested \"" . $itemTitle . "\". Please coordinate pickup details here.";
 
     $chatStmt = mysqli_prepare(
@@ -184,6 +200,7 @@ if (mysqli_stmt_execute($stmt)) {
     }
     mysqli_stmt_close($chatStmt);
 
+    // In-app notification to donor
     $message = "You have a new request for your item";
     $type = "donation_request";
     $stmt = mysqli_prepare($conn, "INSERT INTO notification (user_id, type, message) VALUES (?, ?, ?)");
@@ -193,10 +210,32 @@ if (mysqli_stmt_execute($stmt)) {
         mysqli_stmt_close($stmt);
     }
 
+    // Email donor
+    $emailSent = false;
+    $emailError = null;
+
+    $donorEmail = trim((string)($item["donor_email"] ?? ""));
+    $donorName = trim((string)($item["donor_name"] ?? "Donor"));
+
+    if ($donorEmail !== "") {
+        [$emailSent, $emailError] = sendItemRequestToDonorEmail(
+            $donorEmail,
+            $donorName,
+            $receiverName,
+            $receiverEmail,
+            $itemTitle,
+            $donation_id
+        );
+    } else {
+        $emailError = "Donor email not found";
+    }
+
     echo json_encode([
         "success" => true,
         "message" => "Request sent successfully",
-        "donation_id" => $donation_id
+        "donation_id" => $donation_id,
+        "email_sent" => $emailSent,
+        "email_error" => $emailError
     ]);
 } else {
     mysqli_stmt_close($stmt);
@@ -209,4 +248,3 @@ if (mysqli_stmt_execute($stmt)) {
 }
 
 mysqli_close($conn);
-?>
