@@ -12,6 +12,7 @@ import ItemDetails from "./pages/ItemDetails";
 import Dashboard from "./pages/Dashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import Chat from "./pages/Chat";
 
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/chat/:donationId" element={<Chat />} />
       </Routes>
     </BrowserRouter>
   );
