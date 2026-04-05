@@ -20,7 +20,7 @@ if ($categoryId > 0) {
             FROM item i
             LEFT JOIN category c ON i.category_id = c.category_id
             LEFT JOIN user u ON i.donor_id = u.user_id
-           WHERE i.category_id = ?
+           WHERE i.category_id = ? AND i.status = 'pending'
             ORDER BY i.post_date DESC";
     $stmt = mysqli_prepare($conn, $sql);
     if (!$stmt) {
@@ -33,7 +33,7 @@ if ($categoryId > 0) {
             FROM item i
             LEFT JOIN category c ON i.category_id = c.category_id
             LEFT JOIN user u ON i.donor_id = u.user_id
-           WHERE 1=1
+           WHERE i.status = 'pending'
             ORDER BY i.post_date DESC";
     $stmt = mysqli_prepare($conn, $sql);
     if (!$stmt) {
