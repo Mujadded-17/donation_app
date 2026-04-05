@@ -32,6 +32,7 @@ export default function Explore() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoadingId, setActionLoadingId] = useState(0);
+  const [reviewTab, setReviewTab] = useState("pending");
 
   useEffect(() => {
     fetchCategories();
@@ -49,7 +50,7 @@ export default function Explore() {
     }
   };
 
-  const fetchItems = async (categoryId = null) => {
+  const fetchItems = async (categoryId = null, tab = reviewTab) => {
     setLoading(true);
     setError("");
 
@@ -58,7 +59,8 @@ export default function Explore() {
       let config = {};
 
       if (isAdmin) {
-        url = `${API}/admin_pending_items.php`;
+        const endpoint = tab === "pending" ? "admin_pending_items.php" : "admin_approved_items.php";
+        url = `${API}/${endpoint}`;
         if (categoryId) {
           url += `?category_id=${categoryId}`;
         }
@@ -113,9 +115,16 @@ export default function Explore() {
 
       if (!res.data?.success) {
         setError(res.data?.message || "Failed to review item");
+      } else {
+        // If approved, switch to Approved tab to show the item
+        if (action === "approve") {
+          setReviewTab("approved");
+          await fetchItems(selectedCategory, "approved");
+        } else {
+          // If declined, refresh pending items
+          await fetchItems(selectedCategory, "pending");
+        }
       }
-
-      await fetchItems(selectedCategory);
     } catch (err) {
       const backend = err?.response?.data;
       setError(backend?.message || "Failed to review item");
@@ -153,7 +162,32 @@ export default function Explore() {
   return (
     <div className="explore-container">
       <div className="explore-header">
-        <h1>{isAdmin ? "Review Pending Donations" : "Explore Needs"}</h1>
+        <h1>{isAdmin ? "Review Donations" : "Explore Needs"}</h1>
+        
+        {isAdmin && (
+          <div className="admin-tabs">
+            <button
+              className={`tab-btn ${reviewTab === "pending" ? "active" : ""}`}
+              onClick={() => {
+                setReviewTab("pending");
+                setSelectedCategory(null);
+                fetchItems(null, "pending");
+              }}
+            >
+              ⏳ Pending Review
+            </button>
+            <button
+              className={`tab-btn ${reviewTab === "approved" ? "active" : ""}`}
+              onClick={() => {
+                setReviewTab("approved");
+                setSelectedCategory(null);
+                fetchItems(null, "approved");
+              }}
+            >
+              ✅ Approved Items
+            </button>
+          </div>
+        )}
 
         <div className="explore-filters">
           <input
@@ -217,7 +251,7 @@ export default function Explore() {
           <div className="loading">Loading items...</div>
         ) : items.length === 0 ? (
           <div className="no-items-message">
-            {isAdmin ? "No pending items in this category" : "No items available in this category"}
+            {isAdmin ? (reviewTab === "pending" ? "No pending items in this category" : "No approved items in this category") : "No items available in this category"}
           </div>
         ) : (
           <div className="items-grid">
@@ -260,23 +294,29 @@ export default function Explore() {
                       className="admin-actions"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <span className="pending-badge">Pending Review</span>
+                      <span className={reviewTab === "pending" ? "pending-badge" : "approved-badge"}>
+                        {reviewTab === "pending" ? "🔔 Pending Review" : "✅ Approved"}
+                      </span>
 
-                      <button
-                        className="btn-approve"
-                        onClick={() => reviewItem(item.item_id, "approve")}
-                        disabled={actionLoadingId === item.item_id}
-                      >
-                        {actionLoadingId === item.item_id ? "Processing..." : "Approve"}
-                      </button>
+                      {reviewTab === "pending" && (
+                        <>
+                          <button
+                            className="btn-approve"
+                            onClick={() => reviewItem(item.item_id, "approve")}
+                            disabled={actionLoadingId === item.item_id}
+                          >
+                            {actionLoadingId === item.item_id ? "Processing..." : "Approve"}
+                          </button>
 
-                      <button
-                        className="btn-decline"
-                        onClick={() => reviewItem(item.item_id, "decline")}
-                        disabled={actionLoadingId === item.item_id}
-                      >
-                        {actionLoadingId === item.item_id ? "Processing..." : "Decline"}
-                      </button>
+                          <button
+                            className="btn-decline"
+                            onClick={() => reviewItem(item.item_id, "decline")}
+                            disabled={actionLoadingId === item.item_id}
+                          >
+                            {actionLoadingId === item.item_id ? "Processing..." : "Decline"}
+                          </button>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <button
