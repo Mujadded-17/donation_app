@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost/donation_backend";
 
 export default function ResetPassword() {
   const location = useLocation();
@@ -37,7 +38,8 @@ export default function ResetPassword() {
       setMsg(data.message || "Password updated. Redirecting to login...");
       setTimeout(() => navigate("/login"), 1200);
     } catch (err) {
-      setMsg("Failed to reset password. Try again.");
+      console.error("Reset password error:", err);
+      setMsg(`Failed to reset password. Check backend URL: ${API_BASE}`);
     } finally {
       setLoading(false);
     }

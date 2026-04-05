@@ -1,107 +1,146 @@
 <?php
 require_once __DIR__ . "/config.php";
 
-function sendResetPasswordEmail($toEmail, $toName, $resetLink) {
-  $safeName = htmlspecialchars($toName ?: "User");
-  $safeLink = htmlspecialchars($resetLink);
+function sendResetPasswordEmail($toEmail, $toName, $resetLink)
+{
+    if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
+        return [false, "Invalid recipient email"];
+    }
 
-  $subject = "Reset your password";
-  $body = "
-    <div style='font-family:Arial,sans-serif;line-height:1.6'>
-      <h2 style='margin:0 0 10px'>Password reset</h2>
-      <p>Hi <b>{$safeName}</b>,</p>
-      <p>We received a request to reset your password.</p>
-      <p>
-        <a href='{$safeLink}' style='display:inline-block;padding:10px 14px;background:#2f6cf6;color:#fff;text-decoration:none;border-radius:10px'>
-          Reset Password
-        </a>
-      </p>
-      <p>If the button doesn't work, copy and paste this link:</p>
-      <p style='word-break:break-all'>{$safeLink}</p>
-      <p style='color:#666'>This link expires in 1 hour.</p>
+    $safeName = htmlspecialchars($toName ?: "User", ENT_QUOTES, 'UTF-8');
+    $safeLink = htmlspecialchars($resetLink, ENT_QUOTES, 'UTF-8');
+
+    $subject = "Reset your password";
+
+    $htmlBody = "
+    <div style='font-family: Arial, sans-serif; line-height:1.5; max-width:600px; margin:0 auto;'>
+        <div style='background:#f8f9fa; padding:20px; border-radius:8px;'>
+            <h2 style='margin:0 0 15px; color:#d97706;'>Password reset</h2>
+            <p>Hi <b>{$safeName}</b>,</p>
+            <p>We received a request to reset your password.</p>
+            <p style='margin:20px 0;'>
+                <a href='{$safeLink}' style='display:inline-block;padding:12px 18px;background:#2f6cf6;color:#fff;text-decoration:none;border-radius:10px;font-weight:bold;'>
+                    Reset Password
+                </a>
+            </p>
+            <p>If the button does not work, copy and paste this link into your browser:</p>
+            <p style='word-break:break-all;'>{$safeLink}</p>
+            <p style='color:#666;'>This link expires in 1 hour.</p>
+            <p style='margin-top:20px;color:#999;font-size:12px;border-top:1px solid #ddd;padding-top:15px;'>WarmConnect Team</p>
+        </div>
     </div>
-  ";
+    ";
 
-  // Direct SMTP using fsockopen
-  $smtp_host = SMTP_HOST;
-  $smtp_port = SMTP_PORT;
-  $smtp_user = SMTP_USER;
-  $smtp_pass = SMTP_PASS;
-  $from_email = SMTP_FROM;
-  $from_name = SMTP_FROM_NAME;
+    $textBody = "Hi {$toName},\n\n"
+        . "We received a request to reset your password.\n\n"
+        . "Open this link:\n{$resetLink}\n\n"
+        . "This link expires in 1 hour.\n\n"
+        . "WarmConnect Team";
 
-  $socket = @fsockopen($smtp_host, $smtp_port, $errno, $errstr, 10);
-  if (!$socket) return [false, "Connection failed: $errstr"];
+    try {
+        return sendResetViaSMTPSocket($toEmail, $toName, $subject, $htmlBody, $textBody);
+    } catch (Throwable $e) {
+        return [false, "Email send failed: " . $e->getMessage()];
+    }
+}
 
-  $response = fgets($socket, 1024);
-  if (strpos($response, '220') === false) {
-    fclose($socket);
-    return [false, "SMTP greeting failed"];
-  }
+function sendResetViaSMTPSocket($to, $toName, $subject, $htmlBody, $textBody)
+{
+    $sock = fsockopen(SMTP_HOST, SMTP_PORT, $errno, $errstr, 10);
+    if (!$sock) {
+        return [false, "Could not connect to SMTP server: {$errstr}"];
+    }
 
-  // Send EHLO
-  fwrite($socket, "EHLO localhost\r\n");
-  $response = fgets($socket, 1024);
+    stream_set_timeout($sock, 5);
 
-  // STARTTLS
-  fwrite($socket, "STARTTLS\r\n");
-  $response = fgets($socket, 1024);
-  if (strpos($response, '220') === false) {
-    fclose($socket);
-    return [false, "STARTTLS failed"];
-  }
+    $response = smtpResetReadResponse($sock);
+    if (strpos($response, '220') === false) {
+        fclose($sock);
+        return [false, "SMTP server not ready: " . trim($response)];
+    }
 
-  stream_context_set_params($socket, ["ssl" => ["verify_peer" => false, "verify_peer_name" => false]]);
-  stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+    fputs($sock, "EHLO localhost\r\n");
+    smtpResetReadResponse($sock);
 
-  // After TLS, send EHLO again
-  fwrite($socket, "EHLO localhost\r\n");
-  $response = fgets($socket, 1024);
+    fputs($sock, "STARTTLS\r\n");
+    $response = smtpResetReadResponse($sock);
+    if (strpos($response, '220') === false) {
+        fclose($sock);
+        return [false, "STARTTLS failed: " . trim($response)];
+    }
 
-  // AUTH LOGIN
-  fwrite($socket, "AUTH LOGIN\r\n");
-  $response = fgets($socket, 1024);
+    if (!stream_socket_enable_crypto($sock, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+        fclose($sock);
+        return [false, "Failed to enable TLS"];
+    }
 
-  fwrite($socket, base64_encode($smtp_user) . "\r\n");
-  $response = fgets($socket, 1024);
+    fputs($sock, "EHLO localhost\r\n");
+    smtpResetReadResponse($sock);
 
-  fwrite($socket, base64_encode($smtp_pass) . "\r\n");
-  $response = fgets($socket, 1024);
-  if (strpos($response, '235') === false) {
-    fclose($socket);
-    return [false, "Authentication failed"];
-  }
+    fputs($sock, "AUTH LOGIN\r\n");
+    smtpResetReadResponse($sock);
 
-  // MAIL FROM
-  fwrite($socket, "MAIL FROM:<{$from_email}>\r\n");
-  $response = fgets($socket, 1024);
+    fputs($sock, base64_encode(SMTP_USER) . "\r\n");
+    smtpResetReadResponse($sock);
 
-  // RCPT TO
-  fwrite($socket, "RCPT TO:<{$toEmail}>\r\n");
-  $response = fgets($socket, 1024);
+    fputs($sock, base64_encode(SMTP_PASS) . "\r\n");
+    $authResponse = smtpResetReadResponse($sock);
 
-  // DATA
-  fwrite($socket, "DATA\r\n");
-  $response = fgets($socket, 1024);
+    if (strpos($authResponse, '235') === false) {
+        fclose($sock);
+        return [false, "Authentication failed: " . trim($authResponse)];
+    }
 
-  // Headers + body
-  $headers = "From: {$from_name} <{$from_email}>\r\n";
-  $headers .= "To: {$toName} <{$toEmail}>\r\n";
-  $headers .= "Subject: {$subject}\r\n";
-  $headers .= "MIME-Version: 1.0\r\n";
-  $headers .= "Content-Type: text/html; charset=utf-8\r\n";
-  $headers .= "Content-Transfer-Encoding: 8bit\r\n";
+    fputs($sock, "MAIL FROM: <" . SMTP_FROM . ">\r\n");
+    smtpResetReadResponse($sock);
 
-  fwrite($socket, $headers . "\r\n" . $body . "\r\n.\r\n");
-  $response = fgets($socket, 1024);
+    fputs($sock, "RCPT TO: <{$to}>\r\n");
+    smtpResetReadResponse($sock);
 
-  // QUIT
-  fwrite($socket, "QUIT\r\n");
-  fclose($socket);
+    fputs($sock, "DATA\r\n");
+    smtpResetReadResponse($sock);
 
-  if (strpos($response, '250') !== false) {
-    return [true, null];
-  } else {
-    return [false, "Email send failed"];
-  }
+    $boundary = "boundary_" . md5((string)microtime(true));
+
+    $email = "From: " . SMTP_FROM_NAME . " <" . SMTP_FROM . ">\r\n";
+    $email .= "To: " . ($toName ?: "User") . " <{$to}>\r\n";
+    $email .= "Subject: {$subject}\r\n";
+    $email .= "MIME-Version: 1.0\r\n";
+    $email .= "Content-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n";
+    $email .= "\r\n";
+    $email .= "--{$boundary}\r\n";
+    $email .= "Content-Type: text/plain; charset=UTF-8\r\n";
+    $email .= "Content-Transfer-Encoding: 8bit\r\n";
+    $email .= "\r\n";
+    $email .= $textBody . "\r\n";
+    $email .= "--{$boundary}\r\n";
+    $email .= "Content-Type: text/html; charset=UTF-8\r\n";
+    $email .= "Content-Transfer-Encoding: 8bit\r\n";
+    $email .= "\r\n";
+    $email .= $htmlBody . "\r\n";
+    $email .= "--{$boundary}--\r\n";
+
+    fputs($sock, $email . "\r\n.\r\n");
+    $response = smtpResetReadResponse($sock);
+
+    fputs($sock, "QUIT\r\n");
+    fclose($sock);
+
+    if (strpos($response, '250') !== false) {
+        return [true, null];
+    }
+
+    return [false, "Email send failed: " . trim($response)];
+}
+
+function smtpResetReadResponse($sock)
+{
+    $response = '';
+    while ($line = fgets($sock, 512)) {
+        $response .= $line;
+        if (isset($line[3]) && $line[3] === ' ') {
+            break;
+        }
+    }
+    return $response;
 }

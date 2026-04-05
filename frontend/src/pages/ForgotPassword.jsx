@@ -1,6 +1,7 @@
 import { useState } from "react";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost/donation_backend";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -22,7 +23,8 @@ export default function ForgotPassword() {
       const data = await res.json();
       setMsg(data.message || "If the email exists, a reset link has been sent.");
     } catch (err) {
-      setMsg("Failed to send reset email. Try again.");
+      console.error("Forgot password error:", err);
+      setMsg(`Failed to send reset email. Check backend URL: ${API_BASE}`);
     } finally {
       setLoading(false);
     }
