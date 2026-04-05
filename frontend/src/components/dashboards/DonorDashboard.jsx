@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../../styles/donorDashboard.css";
+import InboxChatPanel from "../chat/InboxChatPanel";
 
 const API =
   import.meta.env.VITE_API_BASE_URL || "http://localhost/donation_backend";
@@ -406,6 +407,7 @@ export default function DonorDashboard() {
                         item={req}
                         apiBase={API}
                         variant="outgoing"
+                        onOpenChat={() => navigate(`/chat/${req.donation_id}`)}
                       />
                     ))
                   )}
@@ -437,6 +439,7 @@ export default function DonorDashboard() {
                             item={req}
                             apiBase={API}
                             variant="incoming"
+                            onOpenChat={() => navigate(`/chat/${req.donation_id}`)}
                           />
                         ))
                       )}
@@ -588,23 +591,12 @@ export default function DonorDashboard() {
               <div>
                 <div className="dd-boxTitle">Inbox</div>
                 <div className="dd-boxSub">
-                  Notification stream from the notification table
+                  Receiver conversations in real time style chat
                 </div>
               </div>
             </div>
 
-            <div className="dd-noticeList">
-              {filteredNotifications.length === 0 ? (
-                <EmptyState
-                  title="Inbox is empty"
-                  text="No notification records were found for this user."
-                />
-              ) : (
-                filteredNotifications.map((note) => (
-                  <NotificationRow key={note.notify_id} note={note} />
-                ))
-              )}
-            </div>
+            <InboxChatPanel apiBase={API} token={localStorage.getItem("token") || ""} emptyTitle="Inbox is empty" />
           </section>
         )}
       </main>
@@ -695,7 +687,7 @@ function DonationItemCard({ item, apiBase, onOpen }) {
   );
 }
 
-function RequestCard({ item, apiBase, variant }) {
+function RequestCard({ item, apiBase, variant, onOpenChat }) {
   const isIncoming = variant === "incoming";
 
   return (
@@ -738,6 +730,14 @@ function RequestCard({ item, apiBase, variant }) {
               <div className="dd-note">🤝 Donor: {item.donor_name || "Unknown"}</div>
               {item.donor_email && <div className="dd-metric">✉ {item.donor_email}</div>}
             </>
+          )}
+
+          {item.donation_id && (
+            <div className="dd-actions">
+              <button className="dd-ctaBtn" onClick={onOpenChat}>
+                Open Chat
+              </button>
+            </div>
           )}
         </div>
       </div>

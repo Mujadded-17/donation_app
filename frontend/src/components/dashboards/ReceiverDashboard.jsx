@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "../../styles/donorDashboard.css";
+import InboxChatPanel from "../chat/InboxChatPanel";
 
 const API = import.meta.env.VITE_API_BASE_URL || "http://localhost/donation_backend";
 
 export default function ReceiverDashboard() {
+  const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const token = localStorage.getItem("token") || "";
 
@@ -107,6 +110,14 @@ export default function ReceiverDashboard() {
             <span className="dd-ico">🌍</span>
             Community
           </button>
+
+          <button
+            className={`dd-navItem ${activeMenu === "inbox" ? "isActive" : ""}`}
+            onClick={() => setActiveMenu("inbox")}
+          >
+            <span className="dd-ico">✉</span>
+            Inbox
+          </button>
         </nav>
 
         <div className="dd-sidebarBottom">
@@ -152,6 +163,7 @@ export default function ReceiverDashboard() {
           <StatCard label="COMPLETED" value={`${stats.completed}`} sub="Community impact" icon="🎉" />
         </section>
 
+        {activeMenu !== "inbox" && (
         <section className="dd-panel">
           <div className="dd-tabs">
             <button className={`dd-tab ${activeTab === "requests" ? "isActive" : ""}`} onClick={() => setActiveTab("requests")}>My Requests</button>
@@ -168,9 +180,9 @@ export default function ReceiverDashboard() {
             {loading ? (
               <EmptyState title="Loading..." text="Fetching your data..." />
             ) : activeTab === "requests" ? (
-              requests.length > 0 ? requests.map((x) => <ItemCard key={x.donation_id} item={x} label={(x.donation_status || "requested").toUpperCase()} chipColor={x.donation_status === "completed" ? "#10b981" : "#60a5fa"} />) : <EmptyState title="No requests yet" text="Browse donations and request items." />
+              requests.length > 0 ? requests.map((x) => <ItemCard key={x.donation_id} item={x} label={(x.donation_status || "requested").toUpperCase()} chipColor={x.donation_status === "completed" ? "#10b981" : "#60a5fa"} onOpenChat={() => navigate(`/chat/${x.donation_id}`)} />) : <EmptyState title="No requests yet" text="Browse donations and request items." />
             ) : activeTab === "received" ? (
-              receivedItems.length > 0 ? receivedItems.map((x) => <ItemCard key={x.donation_id} item={x} label="RECEIVED" chipColor="#10b981" />) : <EmptyState title="No received items" text="Request donations to get started." />
+              receivedItems.length > 0 ? receivedItems.map((x) => <ItemCard key={x.donation_id} item={x} label="RECEIVED" chipColor="#10b981" onOpenChat={() => navigate(`/chat/${x.donation_id}`)} />) : <EmptyState title="No received items" text="Request donations to get started." />
             ) : (
               <div style={{ gridColumn: "1 / -1", padding: "40px", textAlign: "center" }}>
                 <h3>Community Impact</h3>
@@ -179,6 +191,24 @@ export default function ReceiverDashboard() {
             )}
           </div>
         </section>
+        )}
+
+        {activeMenu === "inbox" && (
+          <section className="dd-box">
+            <div className="dd-boxHead">
+              <div>
+                <div className="dd-boxTitle">Inbox</div>
+                <div className="dd-boxSub">Your donor conversations and replies</div>
+              </div>
+            </div>
+
+            <InboxChatPanel
+              apiBase={API}
+              token={token}
+              emptyTitle="No requests yet"
+            />
+          </section>
+        )}
       </main>
     </div>
   );
@@ -197,7 +227,7 @@ function StatCard({ label, value, sub, icon }) {
   );
 }
 
-function ItemCard({ item, label, chipColor }) {
+function ItemCard({ item, label, chipColor, onOpenChat }) {
   return (
     <div className="dd-listCard">
       <div className="dd-listMedia">
@@ -226,6 +256,12 @@ function ItemCard({ item, label, chipColor }) {
         <div className="dd-listFooter">
           <div className="dd-metric"><span className="dd-metricIco">👤</span> {item.donor_name || "Anonymous"}</div>
           <div className="dd-metric"><span className="dd-metricIco">📍</span> {item.pickup_location}</div>
+
+          {item.donation_id && (
+            <div className="dd-actions">
+              <button className="dd-ctaBtn" onClick={onOpenChat}>Open Chat</button>
+            </div>
+          )}
         </div>
       </div>
     </div>
