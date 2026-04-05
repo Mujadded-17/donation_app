@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "../styles/explore.css";
 
@@ -18,6 +19,8 @@ const categoryImages = {
 };
 
 export default function Explore() {
+  const navigate = useNavigate();
+
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const token = localStorage.getItem("token") || "";
   const isAdmin = (user?.email || "").toLowerCase() === ADMIN_EMAIL;
@@ -91,9 +94,7 @@ export default function Explore() {
   };
 
   const reviewItem = async (itemId, action) => {
-    if (!isAdmin) {
-      return;
-    }
+    if (!isAdmin) return;
 
     setActionLoadingId(itemId);
     setError("");
@@ -144,6 +145,10 @@ export default function Explore() {
 
   const selectedCategoryName =
     categories.find((c) => c.category_id === selectedCategory)?.name || "All Categories";
+
+  const openItemDetails = (itemId) => {
+    navigate(`/item/${itemId}`);
+  };
 
   return (
     <div className="explore-container">
@@ -217,7 +222,12 @@ export default function Explore() {
         ) : (
           <div className="items-grid">
             {items.map((item) => (
-              <div key={item.item_id} className="item-card">
+              <div
+                key={item.item_id}
+                className="item-card"
+                onClick={() => openItemDetails(item.item_id)}
+                style={{ cursor: "pointer" }}
+              >
                 <div className="item-image">
                   {item.images ? (
                     <img
@@ -231,21 +241,27 @@ export default function Explore() {
                     <div className="no-image">No Image</div>
                   )}
                 </div>
+
                 <div className="item-details">
                   <h3>{item.title}</h3>
                   <p className="item-description">{item.description}</p>
+
                   <div className="item-meta">
                     <span className="item-donor">By: {item.donor_name || "Anonymous"}</span>
                     <span className="item-location">📍 {item.pickup_location}</span>
                   </div>
 
-                  {item.delivery_available === "1" && (
+                  {String(item.delivery_available) === "1" && (
                     <span className="delivery-badge">🚚 Delivery Available</span>
                   )}
 
                   {isAdmin ? (
-                    <div className="admin-actions">
+                    <div
+                      className="admin-actions"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <span className="pending-badge">Pending Review</span>
+
                       <button
                         className="btn-approve"
                         onClick={() => reviewItem(item.item_id, "approve")}
@@ -253,6 +269,7 @@ export default function Explore() {
                       >
                         {actionLoadingId === item.item_id ? "Processing..." : "Approve"}
                       </button>
+
                       <button
                         className="btn-decline"
                         onClick={() => reviewItem(item.item_id, "decline")}
@@ -262,7 +279,15 @@ export default function Explore() {
                       </button>
                     </div>
                   ) : (
-                    <button className="btn-request">Request Item</button>
+                    <button
+                      className="btn-request"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openItemDetails(item.item_id);
+                      }}
+                    >
+                      View Details
+                    </button>
                   )}
                 </div>
               </div>

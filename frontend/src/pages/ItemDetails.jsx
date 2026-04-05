@@ -10,6 +10,7 @@ export default function ItemDetails() {
   const navigate = useNavigate();
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
+  const token = localStorage.getItem("token") || "";
 
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,25 +19,19 @@ export default function ItemDetails() {
   const [successMsg, setSuccessMsg] = useState("");
 
   useEffect(() => {
-    const load = async () => {
+    const loadItem = async () => {
       setLoading(true);
       setErr("");
+      setSuccessMsg("");
 
       try {
-        const res = await axios.get(`${API}/items_list.php?limit=100`);
+        const res = await axios.get(`${API}/item_detail.php?id=${id}`);
+
         if (!res.data?.success) {
           throw new Error(res.data?.message || "Failed to load item");
         }
 
-        const found = (res.data.data || []).find(
-          (x) => String(x.item_id) === String(id)
-        );
-
-        if (!found) {
-          setErr("Item not found");
-        } else {
-          setItem(found);
-        }
+        setItem(res.data.item);
       } catch (e) {
         setErr(e.message || "Failed to load item");
       } finally {
@@ -44,7 +39,7 @@ export default function ItemDetails() {
       }
     };
 
-    load();
+    loadItem();
   }, [id]);
 
   const handleRequest = async () => {
@@ -58,17 +53,25 @@ export default function ItemDetails() {
       return;
     }
 
+    if (!token) {
+      setErr("You must be logged in to request an item.");
+      return;
+    }
+
     try {
       setRequesting(true);
       setErr("");
+      setSuccessMsg("");
 
       const res = await axios.post(
-        `${API}/receiver_request_item.php`,
+        `${API}/request_item.php`,
+        { item_id: item.item_id },
         {
-          item_id: item.item_id,
-          receiver_id: user.user_id,
-        },
-        { headers: { "Content-Type": "application/json" } }
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       if (!res.data?.success) {
@@ -76,49 +79,62 @@ export default function ItemDetails() {
       }
 
       setSuccessMsg("Request sent successfully!");
-      setItem({ ...item, status: "claimed" });
-
     } catch (e) {
-      setErr(e.message || "Request failed");
+      const backendMessage = e?.response?.data?.message;
+      setErr(backendMessage || e.message || "Request failed");
     } finally {
       setRequesting(false);
     }
   };
 
-  if (loading) return <div className="item-loading">Loading...</div>;
+  if (loading) {
+    return <div className="item-loading">Loading...</div>;
+  }
 
-  if (err)
+  if (err && !item) {
     return (
       <div className="item-error">
         <p>{err}</p>
         <button onClick={() => navigate(-1)}>Go Back</button>
       </div>
     );
+  }
+
+  const imageUrl = item?.images ? `${API}/${item.images}` : "";
 
   return (
     <div className="item-container">
       <div className="item-card">
         <div className="item-image-section">
-          {item.image_url ? (
-            <img src={item.image_url} alt={item.title} />
+          {item?.images ? (
+            <img
+              src={imageUrl}
+              alt={item.title}
+              onError={(e) => {
+                e.target.src = "https://via.placeholder.com/500x350?text=No+Image";
+              }}
+            />
           ) : (
             <div className="no-image">No Image</div>
           )}
         </div>
 
         <div className="item-info-section">
-          <h2>{item.title}</h2>
-          <p className="item-description">{item.description}</p>
+          <h2>{item?.title}</h2>
+          <p className="item-description">{item?.description}</p>
 
           <div className="item-meta">
-            <p><strong>Category:</strong> {item.category_name}</p>
-            <p><strong>Location:</strong> {item.pickup_location}</p>
-            <p><strong>Status:</strong> {item.status}</p>
+            <p><strong>Category:</strong> {item?.category_name || "N/A"}</p>
+            <p><strong>Donor:</strong> {item?.donor_name || "Anonymous"}</p>
+            <p><strong>Location:</strong> {item?.pickup_location || "N/A"}</p>
+            <p><strong>Status:</strong> {item?.status}</p>
+            <p><strong>Delivery:</strong> {String(item?.delivery_available) === "1" ? "Available" : "Not Available"}</p>
           </div>
 
           {successMsg && <div className="success-msg">{successMsg}</div>}
+          {err && item && <div className="item-error"><p>{err}</p></div>}
 
-          {item.status === "available" && user?.user_type === "receiver" && (
+          {item?.status === "available" && user?.user_type === "receiver" && (
             <button
               className="btn-request"
               onClick={handleRequest}
@@ -128,9 +144,26 @@ export default function ItemDetails() {
             </button>
           )}
 
-          {item.status !== "available" && (
-            <div className="claimed-badge">This item is already claimed</div>
+          {!user && (
+            <button
+              className="btn-request"
+              onClick={() => navigate("/login")}
+            >
+              Login to Request
+            </button>
           )}
+
+          {item?.status !== "available" && (
+            <div className="claimed-badge">This item is not available now</div>
+          )}
+
+          <button
+            className="btn-back"
+            onClick={() => navigate(-1)}
+            style={{ marginTop: "12px" }}
+          >
+            ← Back
+          </button>
         </div>
       </div>
     </div>
