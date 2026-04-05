@@ -1,9 +1,10 @@
 .explore-container {
-  max-width: 1400px;
+  width: min(100%, 1600px);
   margin: 0 auto;
   padding: 28px 20px 40px;
-  min-height: 100vh;
+  min-height: calc(100vh - 72px);
   background: #fff7ef;
+  box-sizing: border-box;
 }
 
 .explore-header {
